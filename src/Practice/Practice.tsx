@@ -155,18 +155,18 @@ function Practice() {
   };
 
   return (
-    <div className="min-h-full bg-gray-950 p-4 text-white sm:p-6">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-5">
-        <div>
-          <h1 className="text-2xl font-bold sm:text-3xl">Practice Trainer</h1>
-          <p className="mt-1 text-sm text-gray-400">
+    <div className="app-page">
+      <div className="app-route app-route-workspace">
+        <header className="app-header">
+          <h1 className="app-title">Practice Trainer</h1>
+          <p className="app-subtitle">
             {t(Note.pitchClass(key))} harmonica · {position.label} position · {t(tonic)}{" "}
             {scaleLabel}
           </p>
-        </div>
+        </header>
 
-        <div className="grid gap-3 rounded border border-gray-800 bg-gray-900 p-4 lg:grid-cols-4">
-          <label className="text-sm text-gray-300">
+        <div className="app-panel grid gap-3 lg:grid-cols-4">
+          <label className="app-control-label">
             Harmonica key
             <select
               value={key}
@@ -174,7 +174,7 @@ function Practice() {
                 setKey(event.target.value);
                 setTargetIndex(0);
               }}
-              className="mt-1 w-full rounded border border-gray-700 bg-gray-800 px-3 py-2 text-white"
+              className="app-field"
             >
               {harmonicaKeys.map((harmonicaKey) => (
                 <option key={harmonicaKey.value} value={harmonicaKey.value}>
@@ -184,7 +184,7 @@ function Practice() {
             </select>
           </label>
 
-          <label className="text-sm text-gray-300">
+          <label className="app-control-label">
             Position
             <select
               value={positionIndex}
@@ -192,7 +192,7 @@ function Practice() {
                 setPositionIndex(Number(event.target.value));
                 setTargetIndex(0);
               }}
-              className="mt-1 w-full rounded border border-gray-700 bg-gray-800 px-3 py-2 text-white"
+              className="app-field"
             >
               {positionOptions.map((option, index) => (
                 <option key={option.label} value={index}>
@@ -202,7 +202,7 @@ function Practice() {
             </select>
           </label>
 
-          <label className="text-sm text-gray-300">
+          <label className="app-control-label">
             Scale
             <select
               value={scaleValue}
@@ -210,7 +210,7 @@ function Practice() {
                 setScaleValue(event.target.value as PracticeScaleValue);
                 setTargetIndex(0);
               }}
-              className="mt-1 w-full rounded border border-gray-700 bg-gray-800 px-3 py-2 text-white"
+              className="app-field"
             >
               {scaleOptions.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -220,44 +220,62 @@ function Practice() {
             </select>
           </label>
 
-          <div className="flex flex-wrap items-end gap-2">
+          <div className="flex items-end">
+            <div className="app-segmented flex-wrap">
             {trainerModes.map((mode) => (
               <button
                 key={mode.value}
                 type="button"
+                aria-pressed={trainerMode === mode.value}
                 onClick={() => {
                   setTrainerMode(mode.value);
                   setTargetIndex(0);
                 }}
-                className={`rounded px-3 py-2 text-sm font-semibold ${
+                className={`app-segment ${
                   trainerMode === mode.value
-                    ? "bg-emerald-400 text-black"
-                    : "bg-gray-800 text-white hover:bg-gray-700"
+                    ? "app-segment-active"
+                    : ""
                 }`}
               >
                 {mode.label}
               </button>
             ))}
+            </div>
           </div>
         </div>
 
         <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
-          <div className="overflow-x-auto rounded border border-gray-800 bg-gray-900 p-4">
-            <div className="min-w-[620px]">
+          <div className="app-panel app-scroll-x">
+            <div className="min-w-[720px]">
               {harmonicaLayoutDisplayRows.slice(0, 3).map(({ key, practiceLabel }) => (
-                <div key={key} className="mb-1 grid grid-cols-10 gap-2">
+                <div
+                  key={key}
+                  className="mb-1 grid grid-cols-[96px_repeat(10,minmax(48px,1fr))] gap-2"
+                >
+                  <div className="flex min-h-8 items-center text-xs font-semibold text-gray-400">
+                    {practiceLabel}
+                  </div>
                   {layout[key].map((note, index) =>
                     renderCell(note, practiceLabel, index, rowColorClasses[key])
                   )}
                 </div>
               ))}
-              <div className="mb-2 grid grid-cols-10 gap-2 text-center text-sm font-bold text-gray-400">
+              <div className="mb-2 grid grid-cols-[96px_repeat(10,minmax(48px,1fr))] gap-2 text-center text-sm font-bold text-gray-400">
+                <div className="text-left text-xs uppercase tracking-normal text-gray-500">
+                  Hole
+                </div>
                 {Array.from({ length: 10 }, (_, index) => (
                   <div key={index + 1}>{index + 1}</div>
                 ))}
               </div>
               {harmonicaLayoutDisplayRows.slice(3).map(({ key, practiceLabel }) => (
-                <div key={key} className="mb-1 grid grid-cols-10 gap-2">
+                <div
+                  key={key}
+                  className="mb-1 grid grid-cols-[96px_repeat(10,minmax(48px,1fr))] gap-2"
+                >
+                  <div className="flex min-h-8 items-center text-xs font-semibold text-gray-400">
+                    {practiceLabel}
+                  </div>
                   {layout[key].map((note, index) =>
                     renderCell(note, practiceLabel, index, rowColorClasses[key])
                   )}
@@ -266,20 +284,21 @@ function Practice() {
             </div>
           </div>
 
-          <aside className="rounded border border-gray-800 bg-gray-900 p-4">
+          <aside className="app-panel">
             {trainerMode === "blues" ? (
               <>
-                <h2 className="text-lg font-bold">12-bar blues</h2>
+                <h2 className="app-section-title">12-bar blues</h2>
                 <div className="mt-3 grid grid-cols-4 gap-2">
                   {bluesBars.map((degree, index) => (
                     <button
                       key={`${degree}-${index}`}
                       type="button"
                       onClick={() => setBarIndex(index)}
-                      className={`rounded px-2 py-2 text-sm font-semibold ${
+                      aria-pressed={barIndex === index}
+                      className={`app-button min-h-9 px-2 py-2 ${
                         barIndex === index
-                          ? "bg-cyan-400 text-black"
-                          : "bg-gray-800 text-white hover:bg-gray-700"
+                          ? "app-button-primary"
+                          : "app-button-secondary"
                       }`}
                     >
                       {index + 1}. {degree}
@@ -293,17 +312,17 @@ function Practice() {
               </>
             ) : (
               <>
-                <h2 className="text-lg font-bold">
+                <h2 className="app-section-title">
                   {trainerMode === "bends" ? "Bend trainer" : "Note practice"}
                 </h2>
                 {activeTarget ? (
-                  <div className="mt-4 rounded bg-gray-800 p-4 text-center">
+                  <div className="mt-4 rounded-lg border border-cyan-600/70 bg-cyan-950/30 p-5 text-center shadow-[0_0_24px_rgba(8,145,178,0.14)]">
                     <div className="text-sm text-gray-400">{activeTarget.label}</div>
-                    <div className="mt-1 text-4xl font-bold">{t(Note.pitchClass(activeTarget.noteName))}</div>
+                    <div className="mt-1 text-5xl font-bold text-cyan-100">{t(Note.pitchClass(activeTarget.noteName))}</div>
                     <div className="mt-1 text-sm text-gray-400">{activeTarget.noteName}</div>
                     <div
-                      className={`mt-3 rounded px-3 py-2 text-sm font-semibold ${
-                        isTargetHit ? "bg-green-500 text-black" : "bg-gray-700 text-gray-300"
+                      className={`app-status mt-4 text-base font-semibold ${
+                        isTargetHit ? "app-status-success" : "border-gray-700 bg-gray-800 text-gray-300"
                       }`}
                     >
                       {isTargetHit ? "Hit" : "Waiting"}
@@ -319,7 +338,7 @@ function Practice() {
                   type="button"
                   onClick={nextTarget}
                   disabled={!targets.length}
-                  className="mt-3 w-full rounded bg-cyan-700 px-4 py-2 font-semibold text-white transition hover:bg-cyan-600 disabled:bg-gray-700 disabled:text-gray-400"
+                  className="app-button app-button-primary mt-3 w-full"
                 >
                   Next target
                 </button>
@@ -328,28 +347,43 @@ function Practice() {
 
             <div className="mt-5 border-t border-gray-800 pt-4">
               {!isListening ? (
-                <button
-                  type="button"
-                  onClick={() => setIsListening(true)}
-                  className="w-full rounded bg-green-600 px-4 py-2 font-semibold text-white transition hover:bg-green-700"
-                >
-                  Start listening
-                </button>
+                <div className="space-y-3">
+                  <div className="app-status app-status-info" role="status">
+                    Microphone idle
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsListening(true)}
+                    className="app-button app-button-success w-full"
+                  >
+                    Start listening
+                  </button>
+                </div>
               ) : (
-                <button
-                  type="button"
-                  onClick={() => setIsListening(false)}
-                  className="w-full rounded bg-gray-800 px-4 py-2 font-semibold text-white transition hover:bg-gray-700"
-                >
-                  Stop listening
-                </button>
+                <div className="space-y-3">
+                  <div
+                    className={`app-status ${
+                      detectedNote ? "app-status-success" : "app-status-info"
+                    }`}
+                    role="status"
+                  >
+                    {detectedNote
+                      ? `Detected ${detectedNote.note} · ${detectedNote.cents.toFixed(1)} cents · clarity ${clarity}`
+                      : "Listening for pitch"}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsListening(false)}
+                    className="app-button app-button-secondary w-full"
+                  >
+                    Stop listening
+                  </button>
+                </div>
               )}
 
-              {error && <p className="mt-3 text-sm text-red-300">{error}</p>}
-              {detectedNote && (
-                <p className="mt-3 text-sm text-gray-300">
-                  Detected {detectedNote.note} · {detectedNote.cents.toFixed(1)} cents · clarity{" "}
-                  {clarity}
+              {error && (
+                <p className="app-status app-status-error mt-3" role="alert">
+                  {error}
                 </p>
               )}
             </div>

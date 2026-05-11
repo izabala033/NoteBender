@@ -1,5 +1,171 @@
 @import "tailwindcss";
 
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-gray-950;
+  }
+
+  :where(a, button, input, select, textarea, summary, [role="button"], [tabindex]):focus-visible {
+    @apply outline-none ring-2 ring-cyan-300 ring-offset-2 ring-offset-gray-950;
+  }
+
+  :where(button, input, select, textarea):disabled {
+    @apply cursor-not-allowed;
+  }
+
+  input[type="checkbox"] {
+    @apply h-4 w-4 rounded border-gray-600 bg-gray-800 accent-cyan-500;
+  }
+
+  input[type="range"] {
+    @apply accent-cyan-500;
+  }
+}
+
+@layer components {
+  .app-page {
+    @apply min-h-full overflow-x-hidden bg-gray-950 px-4 py-5 text-white sm:px-6 sm:py-6;
+  }
+
+  .app-route {
+    @apply mx-auto flex w-full flex-col gap-5;
+  }
+
+  .app-route-narrow {
+    @apply max-w-4xl;
+  }
+
+  .app-route-workspace {
+    @apply max-w-6xl;
+  }
+
+  .app-route-wide {
+    @apply max-w-7xl;
+  }
+
+  .app-header {
+    @apply flex flex-col gap-1;
+  }
+
+  .app-title {
+    @apply text-2xl font-bold tracking-normal text-white sm:text-3xl;
+  }
+
+  .app-subtitle {
+    @apply text-sm text-gray-400;
+  }
+
+  .app-section-title {
+    @apply text-lg font-semibold text-gray-100;
+  }
+
+  .app-panel {
+    @apply rounded-lg border border-gray-800 bg-gray-900 p-4 shadow-sm shadow-black/20;
+  }
+
+  .app-panel-muted {
+    @apply rounded-lg border border-gray-800 bg-gray-950/60 p-3;
+  }
+
+  .app-scroll-x {
+    @apply max-w-full overflow-x-auto;
+    contain: inline-size;
+  }
+
+  .app-control-label {
+    @apply block text-sm font-medium text-gray-300;
+  }
+
+  .app-field {
+    @apply mt-1 min-h-10 w-full rounded border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white transition hover:border-gray-600 disabled:border-gray-800 disabled:bg-gray-900 disabled:text-gray-500;
+  }
+
+  .app-button {
+    @apply inline-flex min-h-10 items-center justify-center gap-2 rounded px-4 py-2 text-sm font-semibold transition disabled:border-gray-700 disabled:bg-gray-800 disabled:text-gray-500 disabled:shadow-none;
+  }
+
+  .app-button-primary {
+    @apply border border-cyan-500 bg-cyan-600 text-white shadow-sm shadow-cyan-950/30 hover:bg-cyan-500 active:bg-cyan-700;
+  }
+
+  .app-button-secondary {
+    @apply border border-gray-700 bg-gray-800 text-gray-100 hover:border-gray-600 hover:bg-gray-700 active:bg-gray-800;
+  }
+
+  .app-button-success {
+    @apply border border-emerald-500 bg-emerald-600 text-white shadow-sm shadow-emerald-950/30 hover:bg-emerald-500 active:bg-emerald-700;
+  }
+
+  .app-button-warning {
+    @apply border border-amber-400 bg-amber-500 text-gray-950 shadow-sm shadow-amber-950/20 hover:bg-amber-400 active:bg-amber-600;
+  }
+
+  .app-button-danger {
+    @apply border border-rose-500 bg-rose-600 text-white shadow-sm shadow-rose-950/30 hover:bg-rose-500 active:bg-rose-700;
+  }
+
+  .app-icon-button {
+    @apply inline-flex h-10 w-10 items-center justify-center rounded border border-gray-700 bg-gray-800 text-gray-100 transition hover:border-gray-600 hover:bg-gray-700 disabled:border-gray-800 disabled:bg-gray-900 disabled:text-gray-500;
+  }
+
+  .app-chip {
+    @apply inline-flex min-h-7 items-center gap-1 rounded border border-gray-700 bg-gray-950 px-2.5 py-1 text-xs font-medium text-gray-300;
+  }
+
+  .app-status {
+    @apply rounded border px-3 py-2 text-sm;
+  }
+
+  .app-status-info {
+    @apply border-cyan-800 bg-cyan-950/60 text-cyan-100;
+  }
+
+  .app-status-success {
+    @apply border-emerald-800 bg-emerald-950/60 text-emerald-100;
+  }
+
+  .app-status-warning {
+    @apply border-amber-800 bg-amber-950/60 text-amber-100;
+  }
+
+  .app-status-error {
+    @apply border-rose-800 bg-rose-950/70 text-rose-200;
+  }
+
+  .app-segmented {
+    @apply inline-flex rounded border border-gray-700 bg-gray-900 p-1;
+  }
+
+  .app-segment {
+    @apply min-h-8 rounded px-3 py-1.5 text-xs font-semibold text-gray-300 transition hover:bg-gray-800 hover:text-white;
+  }
+
+  .app-segment-active {
+    @apply bg-cyan-500 text-gray-950 hover:bg-cyan-400 hover:text-gray-950;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 /* This will apply to the annotated notes of the tab. Move them a bit down to not overlap with another notes */
 .vf-text {
   transform: translateY(15px);

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Download, FileText, SlidersHorizontal, Upload } from "lucide-react";
 import { CursorType, OpenSheetMusicDisplay } from "opensheetmusicdisplay";
 import { freqToNoteAndCents, harmonicaKeys } from "../utils/utils";
 import { useTranslation } from "react-i18next";
@@ -38,12 +39,12 @@ type RouteStatus = {
 };
 
 const routeStatusClassNames: Record<RouteStatusTone, string> = {
-  info: "border-cyan-800 bg-cyan-950/60 text-cyan-100",
-  success: "border-emerald-800 bg-emerald-950/60 text-emerald-100",
-  error: "border-red-800 bg-red-950/70 text-red-200",
+  info: "app-status-info",
+  success: "app-status-success",
+  error: "app-status-error",
 };
 
-const TestFileLoader: React.FC = () => {
+const MusicXMLWorkspace: React.FC = () => {
   const { t } = useTranslation();
   const [rawFileContent, setRawFileContent] = useState<string | null>(null);
   const [transpose, setTranspose] = useState<number>(0);
@@ -66,6 +67,7 @@ const TestFileLoader: React.FC = () => {
 
   const osmdRef = useRef<HTMLDivElement>(null);
   const sheetScrollRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const osmdInstance = useRef<OpenSheetMusicDisplay | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const playbackTimerRef = useRef<number | null>(null);
@@ -669,19 +671,25 @@ const TestFileLoader: React.FC = () => {
       });
   }, [clearRenderedSheet, displayFileContent, fileName, stopPlayback]);
   return (
-    <div className="min-h-full bg-gray-950 p-4 text-white sm:p-6">
-      <h1 className="text-2xl sm:text-3xl font-bold mb-6 text-center">
-        🎼 MusicXML Viewer with Harmonica Tabs
-      </h1>
+    <div className="app-page">
+      <div className="app-route app-route-wide">
+        <header className="app-header">
+          <h1 className="app-title">MusicXML Viewer with Harmonica Tabs</h1>
+          <p className="app-subtitle">
+            Load, transpose, render, and practice a first-staff harmonica score.
+          </p>
+        </header>
 
-      <div className="flex flex-col lg:flex-row gap-8 items-start justify-center">
+      <div className="flex flex-col items-start justify-center gap-6 lg:flex-row">
         {/* Configuration Sidebar */}
-        <div className="w-full lg:w-80 bg-gray-900 rounded-lg shadow p-6 space-y-5 border border-gray-700">
+        <div className="app-panel w-full space-y-5 lg:w-80">
+          <h2 className="app-section-title">Score setup</h2>
+
           {routeStatus && (
             <div
               role={routeStatus.tone === "error" ? "alert" : "status"}
               aria-live="polite"
-              className={`rounded border px-3 py-2 text-sm ${routeStatusClassNames[routeStatus.tone]}`}
+              className={`app-status ${routeStatusClassNames[routeStatus.tone]}`}
             >
               {routeStatus.message}
             </div>
@@ -691,15 +699,15 @@ const TestFileLoader: React.FC = () => {
           <div>
             <label
               htmlFor="harmonicaKey"
-              className="block mb-1 text-gray-300 font-medium"
+              className="app-control-label"
             >
-              Select Harmonica Key:
+              Harmonica key
             </label>
             <select
               id="harmonicaKey"
               value={selectedKey}
               onChange={(e) => setSelectedKey(e.target.value)}
-              className="bg-gray-800 border border-gray-600 rounded px-3 py-2 w-full text-white"
+              className="app-field"
             >
               {harmonicaKeys.map((key) => (
                 <option key={key.value} value={key.value}>
@@ -711,42 +719,73 @@ const TestFileLoader: React.FC = () => {
 
           {/* Transpose Input */}
           <div>
-            <label className="block mb-1 text-gray-300 font-medium">
-              Transpose (semitones):
+            <label className="app-control-label">
+              Transpose
             </label>
-            <input
-              type="number"
-              value={transpose}
-              onChange={(e) => setTranspose(parseInt(e.target.value, 10) || 0)}
-              className="bg-gray-800 border border-gray-600 rounded px-3 py-2 w-full text-white"
-            />
+            <div className="mt-1 grid grid-cols-[40px_minmax(0,1fr)_40px]">
+              <button
+                type="button"
+                onClick={() => setTranspose((value) => value - 1)}
+                className="app-icon-button h-10 rounded-r-none"
+                aria-label="Decrease transpose semitones"
+                title="Decrease transpose semitones"
+              >
+                -
+              </button>
+              <input
+                type="number"
+                step="1"
+                value={transpose}
+                onChange={(e) => setTranspose(parseInt(e.target.value, 10) || 0)}
+                className="min-h-10 w-full border-y border-gray-700 bg-gray-800 px-3 py-2 text-center text-sm text-white transition hover:border-gray-600"
+                aria-label="Transpose semitones"
+              />
+              <button
+                type="button"
+                onClick={() => setTranspose((value) => value + 1)}
+                className="app-icon-button h-10 rounded-l-none"
+                aria-label="Increase transpose semitones"
+                title="Increase transpose semitones"
+              >
+                +
+              </button>
+            </div>
+            <p className="mt-1 text-xs text-gray-500">Semitones</p>
           </div>
 
           {/* File Upload */}
           <div>
-            <label className="block mb-1 text-gray-300 font-medium">
-              Upload MusicXML File:
+            <label className="app-control-label" htmlFor="musicxml-upload">
+              Upload MusicXML file
             </label>
-            <label className="inline-block cursor-pointer text-center px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">
-              📂 Browse MusicXML File
-              <input
-                type="file"
-                accept=".xml,.musicxml,.mxl"
-                onChange={handleFileChange}
-                className="hidden"
-              />
-            </label>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="app-button app-button-primary mt-1 w-full"
+            >
+              <Upload className="h-4 w-4" aria-hidden="true" />
+              Browse MusicXML file
+            </button>
+            <input
+              ref={fileInputRef}
+              id="musicxml-upload"
+              type="file"
+              accept=".xml,.musicxml,.mxl"
+              onChange={handleFileChange}
+              className="hidden"
+              tabIndex={-1}
+            />
 
             {fileName && (
               <p className="mt-1 text-sm text-gray-500">Loaded: {fileName}</p>
             )}
           </div>
 
-          <div className="rounded border border-gray-700 bg-gray-950 p-3 space-y-3">
+          <fieldset className="app-panel-muted space-y-3">
+            <legend className="text-sm font-medium text-gray-300">
+              Auto transpose filters
+            </legend>
             <div>
-              <p className="text-sm font-medium text-gray-300">
-                Auto transpose
-              </p>
               <p className="text-xs text-gray-500">
                 Apply these filters when choosing a transposition.
               </p>
@@ -758,7 +797,7 @@ const TestFileLoader: React.FC = () => {
                   type="checkbox"
                   checked={noOverblowOrDraw}
                   onChange={(e) => setNoOverblowOrDraw(e.target.checked)}
-                  className="accent-blue-600"
+                  aria-label="Exclude overblow and overdraw notes"
                 />
                 No Overblow or Overdraw Notes
               </label>
@@ -767,7 +806,7 @@ const TestFileLoader: React.FC = () => {
                   type="checkbox"
                   checked={noBend}
                   onChange={(e) => setNoBend(e.target.checked)}
-                  className="accent-blue-600"
+                  aria-label="Exclude bends"
                 />
                 No Bends
               </label>
@@ -776,18 +815,20 @@ const TestFileLoader: React.FC = () => {
             <button
               type="button"
               onClick={autoTransposeWithFilters}
-              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded transition w-full"
+              className="app-button app-button-secondary w-full"
             >
-              🎯 Auto Transpose
+              <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
+              Auto transpose
             </button>
-          </div>
+          </fieldset>
 
           <button
             type="button"
             onClick={downloadProcessedFile}
             disabled={!canUseProcessedScore}
-            className="bg-cyan-700 hover:bg-cyan-600 disabled:bg-gray-700 disabled:text-gray-400 text-white px-4 py-2 rounded transition w-full"
+            className="app-button app-button-secondary w-full"
           >
+            <Download className="h-4 w-4" aria-hidden="true" />
             Download Transposed MusicXML
           </button>
 
@@ -795,47 +836,54 @@ const TestFileLoader: React.FC = () => {
             type="button"
             onClick={downloadHarpTabsText}
             disabled={!canUseProcessedScore}
-            className="bg-indigo-700 hover:bg-indigo-600 disabled:bg-gray-700 disabled:text-gray-400 text-white px-4 py-2 rounded transition w-full"
+            className="app-button app-button-secondary w-full"
           >
+            <FileText className="h-4 w-4" aria-hidden="true" />
             Download HarpTabs text
           </button>
 
         </div>
 
         <div className="grid w-full flex-1 gap-4 xl:grid-cols-[minmax(0,1fr)_520px]">
-          {/* Sheet Music Viewer */}
-          <div
-            ref={sheetScrollRef}
-            className="h-[65dvh] min-h-80 max-h-[520px] w-full overflow-auto rounded bg-white p-4 text-black shadow lg:sticky lg:top-4 lg:h-[calc(100dvh-7rem)] lg:min-h-[520px] lg:max-h-none"
-          >
-            <div ref={osmdRef} />
+          <div className="order-1 xl:order-2">
+            <NoteHighway
+              accuracy={accuracy}
+              canPlayback={canPlayback}
+              clarity={clarity}
+              currentEventIndex={currentEventIndex}
+              currentTab={currentTab}
+              detectedNote={detectedNote}
+              gameStats={gameStats}
+              isPlaying={isPlaying}
+              laneKeys={laneKeys}
+              lastHitIndex={lastHitIndex}
+              onRestartPlayback={() => stopPlayback(true)}
+              onTogglePlayback={togglePlayback}
+              playbackEventsCount={playbackEvents.length}
+              pitchError={pitchError}
+              progress={progress}
+              setTempo={setTempo}
+              tempo={tempo}
+              visibleGameEvents={visibleGameEvents}
+              visualPlayheadMs={visualPlayheadMs}
+            />
           </div>
 
-          <NoteHighway
-            accuracy={accuracy}
-            canPlayback={canPlayback}
-            clarity={clarity}
-            currentEventIndex={currentEventIndex}
-            currentTab={currentTab}
-            detectedNote={detectedNote}
-            gameStats={gameStats}
-            isPlaying={isPlaying}
-            laneKeys={laneKeys}
-            lastHitIndex={lastHitIndex}
-            onRestartPlayback={() => stopPlayback(true)}
-            onTogglePlayback={togglePlayback}
-            playbackEventsCount={playbackEvents.length}
-            pitchError={pitchError}
-            progress={progress}
-            setTempo={setTempo}
-            tempo={tempo}
-            visibleGameEvents={visibleGameEvents}
-            visualPlayheadMs={visualPlayheadMs}
-          />
+          {/* Sheet Music Viewer */}
+          <div className="order-2 xl:order-1">
+            <h2 className="app-section-title mb-3">Score viewer</h2>
+            <div
+              ref={sheetScrollRef}
+              className="h-[65dvh] min-h-80 max-h-[520px] w-full overflow-auto rounded-lg border border-gray-800 bg-white p-4 text-black shadow-sm shadow-black/30 lg:sticky lg:top-4 lg:h-[calc(100dvh-7rem)] lg:min-h-[520px] lg:max-h-none"
+            >
+              <div ref={osmdRef} />
+            </div>
+          </div>
         </div>
+      </div>
       </div>
     </div>
   );
 };
 
-export default TestFileLoader;
+export default MusicXMLWorkspace;

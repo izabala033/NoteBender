@@ -44,19 +44,26 @@ function Circle() {
         }),
       [selectedRoot, selectedMode, selectedScale]
     );
+  const selectedModeName = modeNames[selectedMode] ?? "Mode";
 
   const angleStep = (2 * Math.PI) / circleOfFifths.length;
 
   return (
-    <div className="flex min-h-full flex-col items-center justify-center bg-gray-950 p-4 text-white sm:p-6">
-      <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 text-center">
-        🎵 Circle of Fifths
-      </h1>
+    <div className="app-page">
+      <div className="app-route app-route-workspace">
+        <header className="app-header">
+          <h1 className="app-title">Circle of Fifths</h1>
+          <p className="app-subtitle">
+            {t(selectedRoot)} root · {selectedModeName} · {t(modeTonic)} {scaleLabel}
+          </p>
+        </header>
 
-      <div
-        className="relative"
-        style={{ width: circleSize, height: circleSize, marginBottom: 40 }}
-      >
+        <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-center">
+          <div className="flex justify-center py-3">
+            <div
+              className="relative"
+              style={{ width: circleSize, height: circleSize }}
+            >
         {circleOfFifths.map((note, i) => {
           const angle = i * angleStep - Math.PI / 2;
           const x = center + radius * Math.cos(angle);
@@ -85,7 +92,7 @@ function Circle() {
                 aria-pressed={
                   Note.chroma(note) === Note.chroma(selectedRoot)
                 }
-                className={`absolute cursor-pointer rounded-full w-10 h-10 sm:w-14 sm:h-14 flex items-center justify-center font-semibold text-sm sm:text-lg transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-cyan-200 focus:ring-offset-2 focus:ring-offset-gray-950 ${colorClass} ${borderClass}`}
+                className={`absolute flex h-10 w-10 cursor-pointer items-center justify-center overflow-hidden rounded-full px-1 text-[11px] font-semibold transition-colors duration-300 sm:h-14 sm:w-14 sm:text-sm ${colorClass} ${borderClass}`}
                 style={{
                   left: x,
                   top: y,
@@ -110,7 +117,7 @@ function Circle() {
 
                 return (
                   <div
-                    className={`absolute rounded-full w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center text-xs font-bold ${colorClass}`}
+                    className={`absolute flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold sm:h-8 sm:w-8 ${colorClass}`}
                     style={{
                       left: xInner,
                       top: yInner,
@@ -124,9 +131,35 @@ function Circle() {
             </React.Fragment>
           );
         })}
-      </div>
+            </div>
+          </div>
 
-      <div className="flex gap-2 sm:gap-3 overflow-x-auto max-w-full px-2 sm:px-4 mt-2 sm:mt-4 pb-2">
+          <aside className="app-panel">
+            <h2 className="app-section-title">Selected sound</h2>
+            <div className="mt-3 space-y-3 text-sm">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-gray-400">Root</span>
+                <span className="text-lg font-bold text-cyan-200">
+                  {t(selectedRoot)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-gray-400">Mode</span>
+                <span className="font-semibold text-gray-100">
+                  {selectedModeName}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-gray-400">Tonic</span>
+                <span className="font-semibold text-emerald-200">
+                  {t(modeTonic)}
+                </span>
+              </div>
+            </div>
+          </aside>
+        </section>
+
+        <div className="app-scroll-x flex gap-2 pb-2 sm:gap-3">
         {[...modes]
           .sort((a, b) => a.harmonicaOrder - b.harmonicaOrder)
           .map(({ name, harmonicaPosition }) => {
@@ -139,10 +172,10 @@ function Circle() {
                 key={name}
                 onClick={() => setSelectedMode(modeIndex)}
                 aria-pressed={isSelected}
-                className={`cursor-pointer px-3 sm:px-4 py-1.5 sm:py-2 rounded font-medium text-sm sm:text-base whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:ring-offset-2 focus:ring-offset-gray-950 ${
+                className={`app-button shrink-0 px-3 py-1.5 sm:px-4 ${
                   isSelected
-                    ? "bg-indigo-400 text-black shadow-md"
-                    : "bg-gray-800 text-white hover:bg-indigo-500 transition-colors"
+                    ? "app-button-primary"
+                    : "app-button-secondary"
                 }`}
               >
                 {name} ({harmonicaPosition})
@@ -151,7 +184,7 @@ function Circle() {
           })}
       </div>
 
-      <div className="flex gap-2 sm:gap-3 overflow-x-auto max-w-full px-2 sm:px-4 mt-2 pb-2">
+        <div className="app-scroll-x flex gap-2 pb-2 sm:gap-3">
         {scaleOptions.map(({ label, value }) => {
           const isSelected = selectedScale === value;
 
@@ -161,10 +194,10 @@ function Circle() {
               type="button"
               onClick={() => setSelectedScale(value)}
               aria-pressed={isSelected}
-              className={`cursor-pointer px-3 sm:px-4 py-1.5 sm:py-2 rounded font-medium text-sm sm:text-base whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:ring-offset-2 focus:ring-offset-gray-950 ${
+              className={`app-button shrink-0 px-3 py-1.5 sm:px-4 ${
                 isSelected
-                  ? "bg-emerald-400 text-black shadow-md"
-                  : "bg-gray-800 text-white hover:bg-emerald-500 transition-colors"
+                  ? "app-button-success"
+                  : "app-button-secondary"
               }`}
             >
               {label}
@@ -173,9 +206,9 @@ function Circle() {
         })}
       </div>
 
-      <div className="flex flex-col md:flex-row md:space-x-6 space-y-6 md:space-y-0 mt-6 sm:mt-8 w-full px-2 sm:px-4 max-w-5xl">
-        <div className="bg-gray-900 p-4 rounded-lg w-full text-sm space-y-2">
-          <h2 className="text-lg font-bold mb-2">
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(260px,0.6fr)]">
+        <div className="app-panel w-full space-y-2 text-sm">
+          <h2 className="app-section-title mb-2">
             {t(modeTonic)} {scaleLabel}
           </h2>
           <div className="flex flex-wrap gap-2">
@@ -195,7 +228,7 @@ function Circle() {
             {triads.map(({ root, notes, quality }, idx) => (
               <li
                 key={idx}
-                className="grid gap-2 rounded bg-gray-800 px-2 py-1 text-xs sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center sm:text-sm"
+                className="grid gap-2 rounded border border-gray-700 bg-gray-800 px-2 py-1.5 text-xs sm:grid-cols-[2rem_minmax(0,1fr)_auto] sm:items-center sm:text-sm"
               >
                 <span className="font-medium">
                   {idx + 1}. {t(root)}
@@ -224,39 +257,40 @@ function Circle() {
           </ul>
         </div>
 
-        <div className="bg-gray-900 p-4 rounded-lg w-full text-sm space-y-2">
-          <h2 className="text-lg font-bold mb-2">Legend</h2>
-          <ul className="space-y-1">
-            <li>
+        <div className="app-panel w-full space-y-2 text-sm">
+          <h2 className="app-section-title mb-2">Legend</h2>
+          <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
+            <li className="text-xs text-gray-300 sm:text-sm">
               <span className="inline-block w-4 h-4 bg-emerald-500 rounded-sm align-middle mr-2 border border-black"></span>
               Scale note
             </li>
-            <li>
+            <li className="text-xs text-gray-300 sm:text-sm">
               <span className="inline-block w-4 h-4 bg-yellow-400 rounded-sm align-middle mr-2 border border-black"></span>
               Major triad
             </li>
-            <li>
+            <li className="text-xs text-gray-300 sm:text-sm">
               <span className="inline-block w-4 h-4 bg-blue-600 rounded-sm align-middle mr-2"></span>
               Minor triad
             </li>
-            <li>
+            <li className="text-xs text-gray-300 sm:text-sm">
               <span className="inline-block w-4 h-4 bg-red-500 rounded-sm align-middle mr-2"></span>
               Diminished triad
             </li>
-            <li>
+            <li className="text-xs text-gray-300 sm:text-sm">
               <span className="inline-block w-4 h-4 bg-gray-800 rounded-sm align-middle mr-2 border border-white"></span>
               No triad / unclassified
             </li>
-            <li>
+            <li className="text-xs text-gray-300 sm:text-sm">
               <span className="inline-block w-4 h-4 border-4 border-cyan-300 rounded-full align-middle mr-2"></span>
               Tonic of selected mode (starting note)
             </li>
-            <li>
+            <li className="text-xs text-gray-300 sm:text-sm">
               <span className="inline-block w-4 h-4 bg-gray-600 rounded-sm align-middle mr-2"></span>
               Numbers inside circle = scale degrees
             </li>
           </ul>
         </div>
+      </div>
       </div>
     </div>
   );

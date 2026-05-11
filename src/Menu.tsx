@@ -1,63 +1,72 @@
 import React from "react";
-import { Link } from "react-router-dom";
-import { Coffee, Github } from "lucide-react";
+import { NavLink } from "react-router-dom";
+import { Coffee, Github, Music } from "lucide-react";
 import NotationSwitch from "./NotationSwitch";
 
-const Menu: React.FC = () => (
-  <nav className="flex flex-wrap items-center gap-3 border-b border-gray-400 bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 p-3 sm:flex-nowrap sm:justify-between sm:p-4">
-    <div className="flex w-full flex-wrap items-center gap-x-4 gap-y-2 sm:w-auto sm:flex-1 sm:gap-6">
-      <Link
-        to="/circle"
-        className="whitespace-nowrap text-sm font-semibold text-white transition-colors duration-300 hover:text-green-400 sm:text-base"
-      >
-        Circle
-      </Link>
-      <Link
-        to="/harmonica"
-        className="whitespace-nowrap text-sm font-semibold text-white transition-colors duration-300 hover:text-green-400 sm:text-base"
-      >
-        Harmonica
-      </Link>
-      <Link
-        to="/musicxml"
-        className="whitespace-nowrap text-sm font-semibold text-white transition-colors duration-300 hover:text-green-400 sm:text-base"
-      >
-        Tabs
-      </Link>
-      <Link
-        to="/practice"
-        className="whitespace-nowrap text-sm font-semibold text-white transition-colors duration-300 hover:text-green-400 sm:text-base"
-      >
-        Practice
-      </Link>
-    </div>
+const navItems = [
+  { to: "/harmonica", label: "Harmonica" },
+  { to: "/musicxml", label: "Tabs" },
+  { to: "/practice", label: "Practice" },
+  { to: "/circle", label: "Circle" },
+];
 
-    {/* Right-side controls (GitHub + NotationSwitch) */}
-    <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-end sm:gap-4">
-      <div className="shrink-0 rounded bg-cyan-700 px-3 py-1 text-xs text-white shadow hover:bg-cyan-600">
+const Menu: React.FC = () => (
+  <nav className="overflow-x-hidden border-b border-gray-800 bg-gray-950/95 text-white">
+    <div className="mx-auto flex w-full max-w-7xl flex-col gap-3 px-4 py-3 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
+        <NavLink
+          to="/harmonica"
+          className="inline-flex min-h-10 items-center gap-2 rounded text-sm font-bold tracking-normal text-white transition hover:text-cyan-200"
+        >
+          <span className="inline-flex h-9 w-9 items-center justify-center rounded border border-cyan-500/50 bg-cyan-500/10 text-cyan-200">
+            <Music className="h-5 w-5" aria-hidden="true" />
+          </span>
+          <span>NoteBender</span>
+        </NavLink>
         <NotationSwitch />
       </div>
-      <a
-        href="https://buymeacoffee.com/ikzzet"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="inline-flex shrink-0 items-center gap-2 rounded bg-yellow-500 px-2.5 py-1.5 text-sm font-semibold text-gray-950 shadow transition hover:bg-yellow-400 sm:px-3"
-        title="Buy me a coffee"
-        aria-label="Buy me a coffee"
-      >
-        <Coffee className="h-4 w-4" />
-        <span className="hidden sm:inline">Buy me a coffee</span>
-      </a>
-      <a
-        href="https://github.com/izabala033/NoteBender"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="shrink-0 text-white transition-colors duration-300 hover:text-green-400"
-        title="GitHub Repository"
-        aria-label="GitHub Repository"
-      >
-        <Github className="w-6 h-6" />
-      </a>
+
+      <div className="app-scroll-x flex min-w-0 items-center gap-2 pb-1 lg:flex-1 lg:justify-center lg:pb-0">
+        {navItems.map(({ to, label }) => (
+          <NavLink
+            key={to}
+            to={to}
+            className={({ isActive }) =>
+              `inline-flex min-h-9 shrink-0 items-center rounded px-3 text-sm font-semibold transition ${
+                isActive
+                  ? "bg-cyan-500 text-gray-950"
+                  : "text-gray-300 hover:bg-gray-900 hover:text-white"
+              }`
+            }
+          >
+            {label}
+          </NavLink>
+        ))}
+      </div>
+
+      <div className="flex min-w-0 items-center justify-between gap-2 border-t border-gray-800 pt-3 lg:border-t-0 lg:pt-0">
+        <a
+          href="https://buymeacoffee.com/ikzzet"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="app-button app-button-warning min-h-9 px-3 py-1.5"
+          title="Buy me a coffee"
+          aria-label="Buy me a coffee"
+        >
+          <Coffee className="h-4 w-4" aria-hidden="true" />
+          <span className="hidden sm:inline">Support</span>
+        </a>
+        <a
+          href="https://github.com/izabala033/NoteBender"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="app-icon-button h-9 w-9"
+          title="GitHub Repository"
+          aria-label="GitHub Repository"
+        >
+          <Github className="h-5 w-5" aria-hidden="true" />
+        </a>
+      </div>
     </div>
   </nav>
 );

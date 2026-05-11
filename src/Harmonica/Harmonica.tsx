@@ -45,6 +45,42 @@ function Harmonica() {
     if (!pitch) return null;
     return freqToNoteAndCents(Number(pitch));
   }, [pitch]);
+  const detectedMidi = detectedNote ? Note.midi(detectedNote.note) : null;
+  const tuningLabel = detectedNote
+    ? Math.abs(detectedNote.cents) <= 5
+      ? "In tune"
+      : detectedNote.cents > 0
+        ? "Sharp"
+        : "Flat"
+    : "No pitch";
+
+  const renderTuningMeter = () => {
+    const cents = detectedNote?.cents ?? 0;
+    const clampedCents = Math.max(-50, Math.min(50, cents));
+    const markerLeft = ((clampedCents + 50) / 100) * 100;
+
+    return (
+      <div className="mt-4 w-full max-w-md">
+        <div className="mb-2 flex items-center justify-between text-xs font-medium text-gray-400">
+          <span>Flat</span>
+          <span className="text-gray-300">{tuningLabel}</span>
+          <span>Sharp</span>
+        </div>
+        <div className="relative h-3 rounded-full border border-gray-700 bg-gray-800">
+          <div className="absolute left-1/2 top-0 h-full w-px bg-emerald-300" />
+          <div
+            className="absolute top-1/2 h-5 w-2 -translate-x-1/2 -translate-y-1/2 rounded bg-emerald-300 shadow-[0_0_16px_rgba(110,231,183,0.65)]"
+            style={{ left: `${markerLeft}%` }}
+          />
+        </div>
+        <div className="mt-2 text-center text-xs text-gray-400">
+          {detectedNote
+            ? `${detectedNote.cents.toFixed(1)} cents`
+            : "Waiting for a stable note"}
+        </div>
+      </div>
+    );
+  };
 
   // Render a horizontal line inside the note box
   // offsetY: vertical offset in px from center, positive moves line down
@@ -67,7 +103,13 @@ function Harmonica() {
     label?: string,
     colorClass = "text-white"
   ) => (
-    <div key={label} className="grid grid-cols-10 gap-2 mb-1 text-center">
+    <div
+      key={label}
+      className="mb-1 grid grid-cols-[88px_repeat(10,minmax(44px,1fr))] gap-2 text-center"
+    >
+      <div className="flex min-h-8 items-center text-left text-xs font-semibold text-gray-400">
+        {label}
+      </div>
       {notes.map((note, idx) => {
         if (!note) return <div key={`${label}-${idx}`} />;
 
@@ -75,14 +117,13 @@ function Harmonica() {
         let showLine = false;
         let offsetY = 0;
 
-        if (
-          detectedNote &&
-          Note.midi(detectedNote.note) === Note.midi(note.name)
-        ) {
+        const isDetectedCell = detectedMidi === Note.midi(note.name);
+
+        if (isDetectedCell) {
           showLine = true;
           // Map cents offset (±50 cents) to ±8px vertical offset
           // 0 cents = center (0px), 50 cents = 8px
-          offsetY = -(detectedNote.cents / 50) * 8;
+          offsetY = -((detectedNote?.cents ?? 0) / 50) * 8;
         }
 
         // Use t() to translate note pitch classes, fallback to original
@@ -92,7 +133,11 @@ function Harmonica() {
         return (
           <div
             key={`${label}-${idx}`}
-            className={`relative flex min-h-8 items-center justify-center rounded border border-gray-700 px-2 py-1 text-sm font-semibold ${colorClass}`}
+            className={`relative flex min-h-8 items-center justify-center rounded border px-2 py-1 text-sm font-semibold ${
+              isDetectedCell
+                ? "border-emerald-200 ring-2 ring-emerald-200/80 shadow-[0_0_18px_rgba(52,211,153,0.35)]"
+                : "border-gray-700"
+            } ${colorClass}`}
           >
             {translatedNoteName}
             {showLine && renderLine(offsetY)}
@@ -103,7 +148,10 @@ function Harmonica() {
   );
 
   const renderHoleNumbers = () => (
-    <div className="grid grid-cols-10 gap-2 mb-2 text-center text-gray-400 font-semibold select-none">
+    <div className="mb-2 grid grid-cols-[88px_repeat(10,minmax(44px,1fr))] gap-2 text-center font-semibold text-gray-400 select-none">
+      <div className="text-left text-xs uppercase tracking-normal text-gray-500">
+        Hole
+      </div>
       {Array.from({ length: 10 }, (_, i) => (
         <div key={`hole-${i + 1}`}>{i + 1}</div>
       ))}
@@ -111,110 +159,137 @@ function Harmonica() {
   );
 
   return (
-    <div className="flex min-h-full flex-col items-center justify-center bg-gray-950 p-4 text-white sm:p-6">
-      <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 text-center">
-        🎶 Harmonica Pitch Visualizer
-      </h1>
+    <div className="app-page">
+      <div className="app-route app-route-narrow">
+        <header className="app-header">
+          <h1 className="app-title">Harmonica Pitch Visualizer</h1>
+          <p className="app-subtitle">
+            {t(Note.pitchClass(key))} harmonica layout with live tuning feedback.
+          </p>
+        </header>
 
-      <div className="mb-6">
-        <label
-          htmlFor="key-select"
-          className="block mb-2 font-semibold text-lg text-gray-300"
-        >
-          Select Harmonica Key:
-        </label>
-        <select
-          id="key-select"
-          value={key}
-          onChange={(e) => setKey(e.target.value)}
-          className="bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white"
-        >
-          {harmonicaKeys.map((k) => (
-            <option key={k.value} value={k.value}>
-              {t(k.label)}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className="relative w-full max-w-md mx-auto h-[5.5rem] sm:h-[6rem]">
-        {!isListening && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-            <button
-              type="button"
-              onClick={() => setIsListening(true)}
-              className="rounded bg-green-600 px-4 py-2 font-semibold text-white transition hover:bg-green-700"
-            >
-              Start listening
-            </button>
-            {error && <div className="text-sm text-red-300">{error}</div>}
-          </div>
-        )}
-        {/* Visible when pitch is detected */}
-        <div
-          className={`absolute inset-0 transition-opacity duration-300 ${
-            isListening && pitch ? "opacity-100" : "opacity-0 pointer-events-none"
-          }`}
-        >
-          <div className="text-xl sm:text-2xl font-semibold text-green-400">
-            Pitch: {pitch} Hz
-          </div>
-          <div className="text-lg sm:text-xl text-gray-300">
-            Clarity: {clarity}
-          </div>
-          {detectedNote && (
-            <div className="text-gray-400">
-              Detected Note: {detectedNote.note} (
-              {detectedNote.cents.toFixed(1)} cents)
+        <section className="app-panel flex min-h-44 items-center justify-center">
+          {!isListening && (
+            <div className="flex flex-col items-center justify-center gap-3 text-center">
+              <div className="app-status app-status-info" role="status">
+                Microphone idle
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsListening(true)}
+                className="app-button app-button-success"
+              >
+                Start listening
+              </button>
+              {error && (
+                <div className="app-status app-status-error" role="alert">
+                  {error}
+                </div>
+              )}
             </div>
           )}
-        </div>
-        {/* Placeholder when no pitch detected */}
-        <div
-          className={`absolute inset-0 flex items-center justify-center transition-opacity duration-300 ${
-            isListening && !pitch && !error
-              ? "opacity-100"
-              : "opacity-0 pointer-events-none"
-          }`}
-        >
-          <div className="text-gray-500 text-lg sm:text-xl animate-pulse">
-            Listening for pitch...
-          </div>
-        </div>
-        {isListening && error && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-            <div className="text-center text-sm text-red-300">{error}</div>
-            <button
-              type="button"
-              onClick={() => {
-                setIsListening(false);
-                window.setTimeout(() => setIsListening(true), 0);
-              }}
-              className="rounded bg-gray-800 px-4 py-2 font-semibold text-white transition hover:bg-gray-700"
+
+          {isListening && pitch && (
+            <div
+              className="flex w-full flex-col items-center text-center"
+              role="status"
+              aria-live="polite"
             >
-              Try again
-            </button>
-          </div>
-        )}
-      </div>
+              <div className="text-4xl font-bold text-emerald-300 sm:text-5xl">
+                {detectedNote ? detectedNote.note : "--"}
+              </div>
+              <div className="mt-2 text-sm text-gray-300">
+                {pitch} Hz · clarity {clarity}
+                {detectedNote
+                  ? ` · ${detectedNote.cents.toFixed(1)} cents`
+                  : ""}
+              </div>
+              {renderTuningMeter()}
+              <button
+                type="button"
+                onClick={() => setIsListening(false)}
+                className="app-button app-button-secondary mt-4"
+              >
+                Stop listening
+              </button>
+            </div>
+          )}
 
-      {/* Harmonica layout */}
-      <div className="w-full max-w-3xl text-center">
-        <h2 className="text-xl font-semibold mb-4">
-          🎵 Harmonica Layout ({t(Note.pitchClass(key))} Major)
-        </h2>
+          {isListening && !pitch && !error && (
+            <div
+              className="flex flex-col items-center text-lg text-gray-400 sm:text-xl"
+              role="status"
+              aria-live="polite"
+            >
+              Listening for pitch...
+              <button
+                type="button"
+                onClick={() => setIsListening(false)}
+                className="app-button app-button-secondary mt-4"
+              >
+                Stop listening
+              </button>
+            </div>
+          )}
 
-        <div className="overflow-x-auto rounded border border-gray-800 bg-gray-900 p-4">
-          <div className="min-w-[620px]">
-            {harmonicaLayoutDisplayRows.slice(0, 3).map(({ key, label }) =>
-              renderRow(layout[key], label, rowColorClasses[key])
-            )}
-            {renderHoleNumbers()}
-            {harmonicaLayoutDisplayRows.slice(3).map(({ key, label }) =>
-              renderRow(layout[key], label, rowColorClasses[key])
-            )}
+          {isListening && error && (
+            <div className="flex flex-col items-center justify-center gap-3 text-center">
+              <div className="app-status app-status-error" role="alert">
+                {error}
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsListening(false);
+                  window.setTimeout(() => setIsListening(true), 0);
+                }}
+                className="app-button app-button-secondary"
+              >
+                Try again
+              </button>
+            </div>
+          )}
+        </section>
+
+        <section className="app-panel">
+          <div className="mb-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_220px] sm:items-end">
+            <div>
+              <h2 className="app-section-title">
+                Harmonica Layout ({t(Note.pitchClass(key))} Major)
+              </h2>
+            </div>
+            <label
+              htmlFor="key-select"
+              className="app-control-label"
+            >
+              Harmonica key
+              <select
+                id="key-select"
+                value={key}
+                onChange={(e) => setKey(e.target.value)}
+                className="app-field"
+              >
+                {harmonicaKeys.map((k) => (
+                  <option key={k.value} value={k.value}>
+                    {t(k.label)}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
-        </div>
+
+          <div className="app-scroll-x rounded-lg border border-gray-800 bg-gray-950/70 p-4 shadow-inner shadow-black/20">
+            <div className="min-w-[620px]">
+              {harmonicaLayoutDisplayRows.slice(0, 3).map(({ key, label }) =>
+                renderRow(layout[key], label, rowColorClasses[key])
+              )}
+              {renderHoleNumbers()}
+              {harmonicaLayoutDisplayRows.slice(3).map(({ key, label }) =>
+                renderRow(layout[key], label, rowColorClasses[key])
+              )}
+            </div>
+          </div>
+        </section>
       </div>
     </div>
   );

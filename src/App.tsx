@@ -20,7 +20,7 @@ function App() {
         <main className="min-h-0">
           <Suspense
             fallback={
-              <div className="min-h-full bg-gray-950 p-6 text-white">
+              <div className="app-page">
                 Loading...
               </div>
             }

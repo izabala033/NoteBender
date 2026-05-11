@@ -2,22 +2,32 @@ import { useTranslation } from "react-i18next";
 
 export default function NotationSwitch() {
   const { i18n } = useTranslation();
+  const language = i18n.resolvedLanguage ?? i18n.language;
+  const isSolfege = language.startsWith("solfege");
 
-  const toggleLanguage = () => {
-    const nextLang = i18n.language === "en" ? "solfege" : "en";
-    i18n.changeLanguage(nextLang);
+  const setLanguage = (nextLanguage: "en" | "solfege") => {
+    if (nextLanguage === language) return;
+    i18n.changeLanguage(nextLanguage);
   };
 
-  // Button label shows the language *you will switch to*
-  const buttonLabel = i18n.language === "en" ? "Do–Re–Mi" : "A–B–C";
-
   return (
-    <button
-      onClick={toggleLanguage}
-      aria-label={`Switch notation to ${buttonLabel}`}
-      type="button"
-    >
-      {buttonLabel}
-    </button>
+    <div className="app-segmented" role="group" aria-label="Notation display">
+      <button
+        type="button"
+        onClick={() => setLanguage("en")}
+        aria-pressed={!isSolfege}
+        className={`app-segment ${!isSolfege ? "app-segment-active" : ""}`}
+      >
+        A B C
+      </button>
+      <button
+        type="button"
+        onClick={() => setLanguage("solfege")}
+        aria-pressed={isSolfege}
+        className={`app-segment ${isSolfege ? "app-segment-active" : ""}`}
+      >
+        Do Re Mi
+      </button>
+    </div>
   );
 }

@@ -57,7 +57,7 @@ export const NoteHighway = ({
   visibleGameEvents,
   visualPlayheadMs,
 }: NoteHighwayProps) => (
-  <div className="rounded-lg border border-gray-700 bg-gray-900 p-4 shadow">
+  <div className="app-panel">
     <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
       <div className="flex items-center gap-2">
         <Target size={18} className="text-emerald-300" />
@@ -66,23 +66,26 @@ export const NoteHighway = ({
         </span>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 text-xs">
-        <span className="rounded border border-gray-700 bg-gray-950 px-2 py-1 text-gray-300">
+      <div className="flex flex-wrap items-center gap-2 text-xs" aria-label="Performance metrics">
+        <span className="text-xs font-semibold uppercase tracking-normal text-gray-500">
+          Performance
+        </span>
+        <span className="app-chip">
           Hits {gameStats.hits}
         </span>
-        <span className="rounded border border-gray-700 bg-gray-950 px-2 py-1 text-gray-300">
+        <span className="app-chip">
           Miss {gameStats.misses}
         </span>
-        <span className="rounded border border-gray-700 bg-gray-950 px-2 py-1 text-emerald-300">
+        <span className="app-chip text-emerald-300">
           Streak {gameStats.streak}
         </span>
-        <span className="rounded border border-gray-700 bg-gray-950 px-2 py-1 text-gray-300">
+        <span className="app-chip">
           {accuracy}% accuracy
         </span>
       </div>
     </div>
 
-    <div className="mb-3 rounded border border-emerald-500/30 bg-gray-950 p-3 shadow-[0_0_22px_rgba(16,185,129,0.08)]">
+    <div className="app-panel-muted mb-3 border-emerald-500/30 shadow-[0_0_22px_rgba(16,185,129,0.08)]">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <div>
           <div className="text-sm font-semibold text-gray-100">
@@ -92,7 +95,7 @@ export const NoteHighway = ({
             {playbackEventsCount} notes
           </div>
         </div>
-        <div className="min-w-20 rounded border border-gray-800 bg-gray-900 px-3 py-2 text-center text-xl font-bold tracking-normal text-emerald-300">
+        <div className="min-w-24 rounded border border-emerald-500/40 bg-emerald-400/10 px-3 py-2 text-center text-xl font-bold tracking-normal text-emerald-200">
           {currentTab || "-"}
         </div>
       </div>
@@ -103,7 +106,7 @@ export const NoteHighway = ({
             type="button"
             onClick={onTogglePlayback}
             disabled={!canPlayback}
-            className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded bg-emerald-600 px-4 text-base font-semibold text-white transition hover:bg-emerald-500 disabled:bg-gray-700 disabled:text-gray-400"
+            className="app-button app-button-success h-12 flex-1 text-base"
           >
             {isPlaying ? <Pause size={20} /> : <Play size={20} />}
             {isPlaying ? "Pause" : "Play"}
@@ -114,7 +117,7 @@ export const NoteHighway = ({
             title="Restart playback"
             onClick={onRestartPlayback}
             disabled={!canPlayback}
-            className="inline-flex h-12 w-12 items-center justify-center rounded border border-gray-700 bg-gray-800 text-gray-100 transition hover:bg-gray-700 disabled:text-gray-500"
+            className="app-icon-button h-12 w-12"
           >
             <RotateCcw size={20} />
           </button>
@@ -134,7 +137,8 @@ export const NoteHighway = ({
             max="180"
             value={tempo}
             onChange={(event) => setTempo(Number(event.target.value))}
-            className="w-full accent-emerald-500"
+            className="w-full"
+            aria-label="Tempo in beats per minute"
           />
         </label>
       </div>
@@ -148,7 +152,7 @@ export const NoteHighway = ({
     </div>
 
     <div className="grid gap-3 sm:grid-cols-[128px_minmax(0,1fr)] xl:grid-cols-[116px_minmax(0,1fr)]">
-      <div className="rounded border border-gray-800 bg-gray-950 p-3">
+      <div className="app-panel-muted">
         <div className="mb-2 text-xs font-semibold uppercase tracking-normal text-gray-500">
           Tab
         </div>
@@ -196,11 +200,11 @@ export const NoteHighway = ({
         )}
 
         <div
-          className="absolute left-0 right-0 h-[3px] -translate-y-1/2 bg-emerald-300 shadow-[0_0_18px_rgba(110,231,183,0.8)]"
+          className="absolute left-0 right-0 h-[2px] -translate-y-1/2 bg-emerald-200 shadow-[0_0_14px_rgba(110,231,183,0.65)]"
           style={{ top: `${NOTE_TARGET_LINE_PERCENT}%` }}
         />
         <div
-          className="absolute left-2 right-2 h-14 -translate-y-1/2 rounded-full border-2 border-emerald-300/80 bg-emerald-400/10"
+          className="absolute left-2 right-2 h-14 -translate-y-1/2 rounded-lg border border-emerald-300/70 bg-emerald-400/10"
           style={{ top: `${NOTE_TARGET_LINE_PERCENT}%` }}
         />
 
@@ -249,7 +253,16 @@ export const NoteHighway = ({
         )}
 
         <div className="absolute bottom-3 left-3 right-3 flex flex-wrap items-center justify-between gap-2 text-xs text-gray-300">
-          <span className="inline-flex items-center gap-2 rounded border border-gray-800 bg-gray-900/90 px-2 py-1">
+          <span
+            className={`app-status inline-flex items-center gap-2 bg-gray-900/95 ${
+              pitchError
+                ? "app-status-error"
+                : detectedNote
+                  ? "app-status-success"
+                  : "app-status-info"
+            }`}
+            role={pitchError ? "alert" : "status"}
+          >
             <Mic size={14} />
             {pitchError
               ? "Mic unavailable"
@@ -261,7 +274,7 @@ export const NoteHighway = ({
                   ? "Listening"
                   : "Press play"}
           </span>
-          <span className="rounded border border-gray-800 bg-gray-900/90 px-2 py-1">
+          <span className="app-status app-status-info bg-gray-900/95">
             Clarity {clarity || "-"}
           </span>
         </div>
