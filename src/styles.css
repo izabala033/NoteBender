@@ -50,7 +50,7 @@
   }
 
   .app-route-wide {
-    @apply max-w-7xl;
+    @apply max-w-[1800px];
   }
 
   .app-header {

@@ -680,9 +680,9 @@ const MusicXMLWorkspace: React.FC = () => {
           </p>
         </header>
 
-      <div className="flex flex-col items-start justify-center gap-6 lg:flex-row">
+      <div className="flex flex-col items-start justify-center gap-4 lg:flex-row">
         {/* Configuration Sidebar */}
-        <div className="app-panel w-full space-y-5 lg:w-80">
+        <div className="app-panel w-full space-y-5 lg:w-72 xl:w-80">
           <h2 className="app-section-title">Score setup</h2>
 
           {routeStatus && (
@@ -844,8 +844,8 @@ const MusicXMLWorkspace: React.FC = () => {
 
         </div>
 
-        <div className="grid w-full flex-1 gap-4 xl:grid-cols-[minmax(0,1fr)_520px]">
-          <div className="order-1 xl:order-2">
+        <div className="grid w-full min-w-0 flex-1 gap-4 min-[1800px]:grid-cols-[minmax(0,1fr)_460px]">
+          <div className="order-1 lg:order-2 min-[1800px]:order-2">
             <NoteHighway
               accuracy={accuracy}
               canPlayback={canPlayback}
@@ -870,11 +870,11 @@ const MusicXMLWorkspace: React.FC = () => {
           </div>
 
           {/* Sheet Music Viewer */}
-          <div className="order-2 xl:order-1">
+          <div className="order-2 min-w-0 lg:order-1 min-[1800px]:order-1">
             <h2 className="app-section-title mb-3">Score viewer</h2>
             <div
               ref={sheetScrollRef}
-              className="h-[65dvh] min-h-80 max-h-[520px] w-full overflow-auto rounded-lg border border-gray-800 bg-white p-4 text-black shadow-sm shadow-black/30 lg:sticky lg:top-4 lg:h-[calc(100dvh-7rem)] lg:min-h-[520px] lg:max-h-none"
+              className="h-[70dvh] min-h-80 max-h-[620px] w-full overflow-auto rounded-lg border border-gray-800 bg-white p-2 text-black shadow-sm shadow-black/30 sm:p-3 lg:sticky lg:top-4 lg:h-[calc(100dvh-7rem)] lg:min-h-[620px] lg:max-h-none min-[1800px]:min-h-[560px]"
             >
               <div ref={osmdRef} />
             </div>
