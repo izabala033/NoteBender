@@ -40,21 +40,21 @@ function Harmonica() {
     minRms: 0.015,
     stableFrames: 4,
   });
-  // Get detected note and cents offset from pitch
+  // Get detected note and cents offset from pitch.
   const detectedNote = useMemo(() => {
     if (!pitch) return null;
     return freqToNoteAndCents(Number(pitch));
   }, [pitch]);
   const detectedMidi = detectedNote ? Note.midi(detectedNote.note) : null;
-  const tuningLabel = detectedNote
+  const bendControlLabel = detectedNote
     ? Math.abs(detectedNote.cents) <= 5
-      ? "In tune"
+      ? "Centered"
       : detectedNote.cents > 0
-        ? "Sharp"
-        : "Flat"
-    : "No pitch";
+        ? "Higher"
+        : "Lower"
+    : "Find a steady note";
 
-  const renderTuningMeter = () => {
+  const renderBendControlMeter = () => {
     const cents = detectedNote?.cents ?? 0;
     const clampedCents = Math.max(-50, Math.min(50, cents));
     const markerLeft = ((clampedCents + 50) / 100) * 100;
@@ -62,21 +62,23 @@ function Harmonica() {
     return (
       <div className="mt-4 w-full max-w-md">
         <div className="mb-2 flex items-center justify-between text-xs font-medium text-gray-400">
-          <span>Flat</span>
-          <span className="text-gray-300">{tuningLabel}</span>
-          <span>Sharp</span>
+          <span>Lower</span>
+          <span className="text-gray-300">{bendControlLabel}</span>
+          <span>Higher</span>
         </div>
         <div className="relative h-3 rounded-full border border-gray-700 bg-gray-800">
           <div className="absolute left-1/2 top-0 h-full w-px bg-emerald-300" />
           <div
-            className="absolute top-1/2 h-5 w-2 -translate-x-1/2 -translate-y-1/2 rounded bg-emerald-300 shadow-[0_0_16px_rgba(110,231,183,0.65)]"
+            className={`absolute top-1/2 h-5 w-2 -translate-x-1/2 -translate-y-1/2 rounded bg-emerald-300 shadow-[0_0_16px_rgba(110,231,183,0.65)] ${
+              detectedNote ? "" : "opacity-40"
+            }`}
             style={{ left: `${markerLeft}%` }}
           />
         </div>
         <div className="mt-2 text-center text-xs text-gray-400">
           {detectedNote
             ? `${detectedNote.cents.toFixed(1)} cents`
-            : "Waiting for a stable note"}
+            : "Waiting for a stable bend target"}
         </div>
       </div>
     );
@@ -162,13 +164,13 @@ function Harmonica() {
     <div className="app-page">
       <div className="app-route app-route-narrow">
         <header className="app-header">
-          <h1 className="app-title">Harmonica Pitch Visualizer</h1>
+          <h1 className="app-title">Harmonica Bend Practice</h1>
           <p className="app-subtitle">
-            {t(Note.pitchClass(key))} harmonica layout with live tuning feedback.
+            {t(Note.pitchClass(key))} harmonica layout with live bend-control feedback.
           </p>
         </header>
 
-        <section className="app-panel flex min-h-44 items-center justify-center">
+        <section className="app-panel flex min-h-[17rem] items-center justify-center">
           {!isListening && (
             <div className="flex flex-col items-center justify-center gap-3 text-center">
               <div className="app-status app-status-info" role="status">
@@ -189,39 +191,23 @@ function Harmonica() {
             </div>
           )}
 
-          {isListening && pitch && (
+          {isListening && !error && (
             <div
               className="flex w-full flex-col items-center text-center"
               role="status"
               aria-live="polite"
             >
-              <div className="text-4xl font-bold text-emerald-300 sm:text-5xl">
+              <div className="min-h-[3.5rem] text-4xl font-bold text-emerald-300 sm:text-5xl">
                 {detectedNote ? detectedNote.note : "--"}
               </div>
-              <div className="mt-2 text-sm text-gray-300">
-                {pitch} Hz · clarity {clarity}
+              <div className="mt-2 min-h-5 text-sm text-gray-300">
                 {detectedNote
-                  ? ` · ${detectedNote.cents.toFixed(1)} cents`
-                  : ""}
+                  ? `${pitch} Hz · clarity ${clarity} · ${detectedNote.cents.toFixed(
+                      1
+                    )} cents`
+                  : "Listening for a steady bend target"}
               </div>
-              {renderTuningMeter()}
-              <button
-                type="button"
-                onClick={() => setIsListening(false)}
-                className="app-button app-button-secondary mt-4"
-              >
-                Stop listening
-              </button>
-            </div>
-          )}
-
-          {isListening && !pitch && !error && (
-            <div
-              className="flex flex-col items-center text-lg text-gray-400 sm:text-xl"
-              role="status"
-              aria-live="polite"
-            >
-              Listening for pitch...
+              {renderBendControlMeter()}
               <button
                 type="button"
                 onClick={() => setIsListening(false)}
