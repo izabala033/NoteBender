@@ -11,7 +11,7 @@ type PitchDetectorOptions = {
   stableFrames?: number;
 };
 
-const getRms = (buffer: Float32Array) => {
+const getRms = (buffer: Float32Array<ArrayBuffer>) => {
   const sum = buffer.reduce((total, sample) => total + sample * sample, 0);
   return Math.sqrt(sum / buffer.length);
 };
@@ -50,7 +50,7 @@ export function usePitchDetector(
     }
 
     let analyser: AnalyserNode;
-    let buffer: Float32Array;
+    let buffer: Float32Array<ArrayBuffer>;
     let cancelled = false;
 
     const initAudio = async () => {
