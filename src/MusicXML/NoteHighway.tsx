@@ -6,7 +6,6 @@ import {
   NOTE_HIT_WINDOW_MS,
   NOTE_LANE_GAP_PX,
   NOTE_TARGET_LINE_PERCENT,
-  NOTE_TILE_HEIGHT_PX,
   NOTE_TILE_WIDTH_PX,
 } from "./constants";
 import { getTabHole } from "./playbackParser";
@@ -16,9 +15,11 @@ import type { GameStats, PlaybackNote, VisibleGameEvent } from "./types";
 type DetectedNote = NonNullable<ReturnType<typeof freqToNoteAndCents>>;
 
 type HighwayTile = {
+  fontSizePx: number;
   heightPercent: number;
   hole: number | null;
   isActive: boolean;
+  isCompact: boolean;
   key: string;
   left: number;
   note: PlaybackNote;
@@ -45,6 +46,9 @@ const getHoleTileColor = (hole: number | null) =>
   hole === null
     ? "border-gray-500 bg-gray-800 text-gray-100 shadow-black/30"
     : NOTE_TILE_COLORS[(hole - 1) % NOTE_TILE_COLORS.length];
+
+const getTileFontSizePx = (heightPercent: number) =>
+  Math.round(Math.max(7, Math.min(12, heightPercent * 2.6)));
 
 const getHighwayTiles = (
   visibleGameEvents: VisibleGameEvent[],
@@ -76,15 +80,18 @@ const getHighwayTiles = (
           NOTE_TARGET_LINE_PERCENT;
       const top = (startTop + endTop) / 2;
       const heightPercent = Math.abs(startTop - endTop);
+      const isCompact = heightPercent < 3.5;
       const isActive =
         visualPlayheadMs >= timing.startMs - NOTE_HIT_WINDOW_MS &&
         visualPlayheadMs <= noteEndMs + NOTE_HIT_WINDOW_MS;
 
       return [
         {
+          fontSizePx: getTileFontSizePx(heightPercent),
           heightPercent,
           hole,
           isActive,
+          isCompact,
           key: `${index}-${note.name}-${noteIndex}`,
           left,
           note,
@@ -279,9 +286,11 @@ export const NoteHighway = ({
 
         {highwayTiles.map(
           ({
+            fontSizePx,
             heightPercent,
             hole,
             isActive,
+            isCompact,
             key,
             left,
             note,
@@ -292,7 +301,10 @@ export const NoteHighway = ({
           }) => (
             <div
               key={key}
-              className={`absolute flex -translate-x-1/2 -translate-y-1/2 items-center justify-center whitespace-nowrap rounded border-2 text-xs font-black leading-none shadow-lg transition-[transform,filter,box-shadow] ${getHoleTileColor(
+              title={tab || Note.pitchClass(note.name)}
+              className={`absolute flex -translate-x-1/2 -translate-y-1/2 items-center justify-center overflow-hidden whitespace-nowrap font-black shadow-lg transition-[transform,filter,box-shadow] ${
+                isCompact ? "rounded-sm border" : "rounded border-2"
+              } ${getHoleTileColor(
                 hole
               )} ${
                 wasHit
@@ -305,7 +317,10 @@ export const NoteHighway = ({
                 left: `${left}%`,
                 top: `${top}%`,
                 width: `min(${NOTE_TILE_WIDTH_PX}px, calc(${100 / laneCount}% - ${NOTE_LANE_GAP_PX}px))`,
-                height: `max(${NOTE_TILE_HEIGHT_PX}px, ${heightPercent}%)`,
+                minHeight: "4px",
+                height: `${heightPercent}%`,
+                fontSize: `${fontSizePx}px`,
+                lineHeight: `${fontSizePx}px`,
                 opacity,
                 zIndex: wasHit ? 30 : isActive ? 20 : 10,
               }}
