@@ -850,7 +850,6 @@ const MusicXMLWorkspace: React.FC = () => {
               accuracy={accuracy}
               canPlayback={canPlayback}
               clarity={clarity}
-              currentEventIndex={currentEventIndex}
               currentTab={currentTab}
               detectedNote={detectedNote}
               gameStats={gameStats}

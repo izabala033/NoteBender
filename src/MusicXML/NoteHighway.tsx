@@ -106,7 +106,6 @@ type NoteHighwayProps = {
   accuracy: number;
   canPlayback: boolean;
   clarity: string | null;
-  currentEventIndex: number;
   currentTab: string;
   detectedNote: DetectedNote | null;
   gameStats: GameStats;
@@ -128,7 +127,6 @@ export const NoteHighway = ({
   accuracy,
   canPlayback,
   clarity,
-  currentEventIndex,
   currentTab,
   detectedNote,
   gameStats,
@@ -245,131 +243,103 @@ export const NoteHighway = ({
         </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-[128px_minmax(0,1fr)] xl:grid-cols-[116px_minmax(0,1fr)]">
-        <div className="app-panel-muted">
-          <div className="mb-2 text-xs font-semibold uppercase tracking-normal text-gray-500">
-            Tab
-          </div>
-          <div className="mb-3 rounded border border-emerald-400/40 bg-emerald-400/10 px-2 py-3 text-center text-2xl font-bold text-emerald-200">
-            {currentTab || "-"}
-          </div>
-          <div className="space-y-2">
-            {visibleGameEvents
-              .filter(
-                ({ event, index }) =>
-                  index > currentEventIndex &&
-                  event.notes.some((note) => note.shouldPlay)
-              )
-              .slice(0, 7)
-              .map(({ event, index }) => (
-                <div
-                  key={`tab-${index}`}
-                  className="flex min-h-8 items-center justify-center rounded border border-gray-800 bg-gray-900 px-2 text-sm font-semibold text-gray-300"
-                >
-                  {event.tabs.join("  ") || "rest"}
-                </div>
-              ))}
-          </div>
-        </div>
-
-        <div className="relative h-[360px] overflow-hidden rounded border border-gray-800 bg-gray-950 sm:h-[440px] lg:h-[520px]">
-          {Array.from({ length: Math.max(laneKeys.length - 1, 0) }).map(
-            (_, lane) => (
-              <div
-                key={lane}
-                className="absolute bottom-0 top-0 border-l border-gray-800"
-                style={{ left: `${((lane + 1) / laneKeys.length) * 100}%` }}
-              />
-            )
-          )}
-          {laneKeys.map((hole, lane) => (
+      <div className="relative h-[360px] overflow-hidden rounded border border-gray-800 bg-gray-950 sm:h-[440px] lg:h-[520px]">
+        {Array.from({ length: Math.max(laneKeys.length - 1, 0) }).map(
+          (_, lane) => (
             <div
-              key={`lane-label-${hole}`}
-              className="absolute top-2 -translate-x-1/2 text-[10px] font-semibold text-gray-600"
-              style={{ left: `${((lane + 0.5) / laneKeys.length) * 100}%` }}
-            >
-              {hole}
-            </div>
-          ))}
-          {!laneKeys.length && (
-            <div className="absolute inset-x-0 top-2 text-center text-[10px] font-semibold text-gray-600">
-              No tab lanes
-            </div>
-          )}
-
+              key={lane}
+              className="absolute bottom-0 top-0 border-l border-gray-800"
+              style={{ left: `${((lane + 1) / laneKeys.length) * 100}%` }}
+            />
+          )
+        )}
+        {laneKeys.map((hole, lane) => (
           <div
-            className="absolute left-0 right-0 h-[2px] -translate-y-1/2 bg-emerald-200 shadow-[0_0_14px_rgba(110,231,183,0.65)]"
-            style={{ top: `${NOTE_TARGET_LINE_PERCENT}%` }}
-          />
-          <div
-            className="absolute left-2 right-2 h-14 -translate-y-1/2 rounded-lg border border-emerald-300/70 bg-emerald-400/10"
-            style={{ top: `${NOTE_TARGET_LINE_PERCENT}%` }}
-          />
-
-          {highwayTiles.map(
-            ({
-              heightPercent,
-              hole,
-              isActive,
-              key,
-              left,
-              note,
-              opacity,
-              tab,
-              top,
-              wasHit,
-            }) => (
-              <div
-                key={key}
-                className={`absolute flex -translate-x-1/2 -translate-y-1/2 items-center justify-center whitespace-nowrap rounded border-2 text-xs font-black leading-none shadow-lg transition-[transform,filter,box-shadow] ${getHoleTileColor(
-                  hole
-                )} ${
-                  wasHit
-                    ? "scale-110 ring-2 ring-emerald-100 brightness-110"
-                    : isActive
-                      ? "ring-2 ring-white/80 brightness-110"
-                      : "ring-1 ring-black/30"
-                }`}
-                style={{
-                  left: `${left}%`,
-                  top: `${top}%`,
-                  width: `min(${NOTE_TILE_WIDTH_PX}px, calc(${100 / laneCount}% - ${NOTE_LANE_GAP_PX}px))`,
-                  height: `max(${NOTE_TILE_HEIGHT_PX}px, ${heightPercent}%)`,
-                  opacity,
-                  zIndex: wasHit ? 30 : isActive ? 20 : 10,
-                }}
-              >
-                {tab || Note.pitchClass(note.name)}
-              </div>
-            )
-          )}
-
-          <div className="absolute bottom-3 left-3 right-3 flex flex-wrap items-center justify-between gap-2 text-xs text-gray-300">
-            <span
-              className={`app-status inline-flex items-center gap-2 bg-gray-900/95 ${
-                pitchError
-                  ? "app-status-error"
-                  : detectedNote
-                    ? "app-status-success"
-                    : "app-status-info"
-              }`}
-              role={pitchError ? "alert" : "status"}
-            >
-              <Mic size={14} />
-              {pitchError
-                ? "Mic unavailable"
-                : detectedNote
-                  ? `${Note.pitchClass(detectedNote.note)} ${
-                      detectedNote.cents > 0 ? "+" : ""
-                    }${Math.round(detectedNote.cents)}c`
-                  : isPlaying
-                    ? "Listening"
-                    : "Press play"}
-            </span>
-            <span className="app-status app-status-info bg-gray-900/95">
-              Clarity {clarity || "-"}
-            </span>
+            key={`lane-label-${hole}`}
+            className="absolute top-2 -translate-x-1/2 text-[10px] font-semibold text-gray-600"
+            style={{ left: `${((lane + 0.5) / laneKeys.length) * 100}%` }}
+          >
+            {hole}
           </div>
+        ))}
+        {!laneKeys.length && (
+          <div className="absolute inset-x-0 top-2 text-center text-[10px] font-semibold text-gray-600">
+            No tab lanes
+          </div>
+        )}
+
+        <div
+          className="absolute left-0 right-0 h-[2px] -translate-y-1/2 bg-emerald-200 shadow-[0_0_14px_rgba(110,231,183,0.65)]"
+          style={{ top: `${NOTE_TARGET_LINE_PERCENT}%` }}
+        />
+        <div
+          className="absolute left-2 right-2 h-14 -translate-y-1/2 rounded-lg border border-emerald-300/70 bg-emerald-400/10"
+          style={{ top: `${NOTE_TARGET_LINE_PERCENT}%` }}
+        />
+
+        {highwayTiles.map(
+          ({
+            heightPercent,
+            hole,
+            isActive,
+            key,
+            left,
+            note,
+            opacity,
+            tab,
+            top,
+            wasHit,
+          }) => (
+            <div
+              key={key}
+              className={`absolute flex -translate-x-1/2 -translate-y-1/2 items-center justify-center whitespace-nowrap rounded border-2 text-xs font-black leading-none shadow-lg transition-[transform,filter,box-shadow] ${getHoleTileColor(
+                hole
+              )} ${
+                wasHit
+                  ? "scale-110 ring-2 ring-emerald-100 brightness-110"
+                  : isActive
+                    ? "ring-2 ring-white/80 brightness-110"
+                    : "ring-1 ring-black/30"
+              }`}
+              style={{
+                left: `${left}%`,
+                top: `${top}%`,
+                width: `min(${NOTE_TILE_WIDTH_PX}px, calc(${100 / laneCount}% - ${NOTE_LANE_GAP_PX}px))`,
+                height: `max(${NOTE_TILE_HEIGHT_PX}px, ${heightPercent}%)`,
+                opacity,
+                zIndex: wasHit ? 30 : isActive ? 20 : 10,
+              }}
+            >
+              {tab || Note.pitchClass(note.name)}
+            </div>
+          )
+        )}
+
+        <div className="absolute bottom-3 left-3 right-3 flex flex-wrap items-center justify-between gap-2 text-xs text-gray-300">
+          <span
+            className={`app-status inline-flex items-center gap-2 bg-gray-900/95 ${
+              pitchError
+                ? "app-status-error"
+                : detectedNote
+                  ? "app-status-success"
+                  : "app-status-info"
+            }`}
+            role={pitchError ? "alert" : "status"}
+          >
+            <Mic size={14} />
+            {pitchError
+              ? "Mic unavailable"
+              : detectedNote
+                ? `${Note.pitchClass(detectedNote.note)} ${
+                    detectedNote.cents > 0 ? "+" : ""
+                  }${Math.round(detectedNote.cents)}c`
+                : isPlaying
+                  ? "Listening"
+                  : "Press play"}
+          </span>
+          <span className="app-status app-status-info bg-gray-900/95">
+            Clarity {clarity || "-"}
+          </span>
         </div>
       </div>
     </div>
