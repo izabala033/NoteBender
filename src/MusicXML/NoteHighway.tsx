@@ -42,10 +42,41 @@ const NOTE_TILE_COLORS = [
   "border-yellow-200 bg-yellow-300 text-gray-950 shadow-yellow-950/30",
 ];
 
-const getHoleTileColor = (hole: number | null) =>
+const BEND_TILE_COLORS: Record<string, string> = {
+  "-1'": "border-sky-100 bg-sky-600 text-white shadow-sky-950/30",
+  "-2'": "border-violet-100 bg-violet-600 text-white shadow-violet-950/30",
+  "-2''": "border-violet-50 bg-violet-700 text-white shadow-violet-950/30",
+  "-3'": "border-amber-100 bg-amber-500 text-gray-950 shadow-amber-950/30",
+  "-3''": "border-amber-50 bg-amber-600 text-white shadow-amber-950/30",
+  "-3'''": "border-amber-50 bg-amber-700 text-white shadow-amber-950/30",
+  "-4'": "border-emerald-100 bg-emerald-600 text-white shadow-emerald-950/30",
+  "-6'": "border-lime-100 bg-lime-500 text-gray-950 shadow-lime-950/30",
+  "8'": "border-cyan-100 bg-cyan-500 text-gray-950 shadow-cyan-950/30",
+  "9'": "border-fuchsia-100 bg-fuchsia-600 text-white shadow-fuchsia-950/30",
+  "10'": "border-yellow-100 bg-yellow-400 text-gray-950 shadow-yellow-950/30",
+  "10''": "border-yellow-50 bg-yellow-500 text-gray-950 shadow-yellow-950/30",
+};
+
+const OVERNOTE_TILE_COLORS: Record<string, string> = {
+  "1o": "border-sky-50 bg-sky-400 text-gray-950 shadow-sky-950/30",
+  "4o": "border-emerald-50 bg-emerald-400 text-gray-950 shadow-emerald-950/30",
+  "5o": "border-rose-50 bg-rose-400 text-white shadow-rose-950/30",
+  "6o": "border-lime-50 bg-lime-300 text-gray-950 shadow-lime-950/30",
+  "-7o": "border-orange-50 bg-orange-400 text-gray-950 shadow-orange-950/30",
+  "-9o": "border-fuchsia-50 bg-fuchsia-400 text-white shadow-fuchsia-950/30",
+  "-10o": "border-yellow-50 bg-yellow-200 text-gray-950 shadow-yellow-950/30",
+};
+
+const getTechniqueTileColor = (tab: string) => {
+  const normalizedTab = tab.trim().toLowerCase();
+  return BEND_TILE_COLORS[normalizedTab] ?? OVERNOTE_TILE_COLORS[normalizedTab];
+};
+
+const getTileColor = (hole: number | null, tab: string) =>
   hole === null
     ? "border-gray-500 bg-gray-800 text-gray-100 shadow-black/30"
-    : NOTE_TILE_COLORS[(hole - 1) % NOTE_TILE_COLORS.length];
+    : getTechniqueTileColor(tab) ??
+      NOTE_TILE_COLORS[(hole - 1) % NOTE_TILE_COLORS.length];
 
 const getTileFontSizePx = (heightPercent: number) =>
   Math.round(Math.max(7, Math.min(12, heightPercent * 2.6)));
@@ -304,8 +335,9 @@ export const NoteHighway = ({
               title={tab || Note.pitchClass(note.name)}
               className={`absolute flex -translate-x-1/2 -translate-y-1/2 items-center justify-center overflow-hidden whitespace-nowrap font-black shadow-lg transition-[transform,filter,box-shadow] ${
                 isCompact ? "rounded-sm border" : "rounded border-2"
-              } ${getHoleTileColor(
-                hole
+              } ${getTileColor(
+                hole,
+                tab
               )} ${
                 wasHit
                   ? "scale-110 ring-2 ring-emerald-100 brightness-110"
