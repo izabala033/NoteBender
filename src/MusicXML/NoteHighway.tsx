@@ -2,143 +2,17 @@ import { Gauge, Mic, Pause, Play, RotateCcw, Target } from "lucide-react";
 import { Note } from "tonal";
 import type { freqToNoteAndCents } from "../utils/utils";
 import {
-  NOTE_HIGHWAY_LOOKAHEAD_MS,
-  NOTE_HIT_WINDOW_MS,
   NOTE_LANE_GAP_PX,
   NOTE_TARGET_LINE_PERCENT,
   NOTE_TILE_WIDTH_PX,
 } from "./constants";
-import { getTabHole } from "./playbackParser";
-import { getPlaybackNoteDurationMs } from "./playbackTimeline";
-import type { GameStats, PlaybackNote, VisibleGameEvent } from "./types";
+import {
+  createNoteHighwayTiles,
+  type NoteHighwayTile,
+} from "./noteHighwayViewModel";
+import type { GameStats, VisibleGameEvent } from "./types";
 
 type DetectedNote = NonNullable<ReturnType<typeof freqToNoteAndCents>>;
-
-type HighwayTile = {
-  fontSizePx: number;
-  heightPercent: number;
-  hole: number | null;
-  isActive: boolean;
-  isCompact: boolean;
-  key: string;
-  left: number;
-  note: PlaybackNote;
-  opacity: number;
-  tab: string;
-  top: number;
-  wasHit: boolean;
-};
-
-const NOTE_TILE_COLORS = [
-  "border-sky-200 bg-sky-500 text-gray-950 shadow-sky-950/30",
-  "border-violet-200 bg-violet-500 text-white shadow-violet-950/30",
-  "border-amber-200 bg-amber-400 text-gray-950 shadow-amber-950/30",
-  "border-emerald-200 bg-emerald-500 text-gray-950 shadow-emerald-950/30",
-  "border-rose-200 bg-rose-500 text-white shadow-rose-950/30",
-  "border-lime-200 bg-lime-400 text-gray-950 shadow-lime-950/30",
-  "border-orange-200 bg-orange-500 text-gray-950 shadow-orange-950/30",
-  "border-cyan-200 bg-cyan-400 text-gray-950 shadow-cyan-950/30",
-  "border-fuchsia-200 bg-fuchsia-500 text-white shadow-fuchsia-950/30",
-  "border-yellow-200 bg-yellow-300 text-gray-950 shadow-yellow-950/30",
-];
-
-const BEND_TILE_COLORS: Record<string, string> = {
-  "-1'": "border-sky-100 bg-sky-600 text-white shadow-sky-950/30",
-  "-2'": "border-violet-100 bg-violet-600 text-white shadow-violet-950/30",
-  "-2''": "border-violet-50 bg-violet-700 text-white shadow-violet-950/30",
-  "-3'": "border-amber-100 bg-amber-500 text-gray-950 shadow-amber-950/30",
-  "-3''": "border-amber-50 bg-amber-600 text-white shadow-amber-950/30",
-  "-3'''": "border-amber-50 bg-amber-700 text-white shadow-amber-950/30",
-  "-4'": "border-emerald-100 bg-emerald-600 text-white shadow-emerald-950/30",
-  "-6'": "border-lime-100 bg-lime-500 text-gray-950 shadow-lime-950/30",
-  "8'": "border-cyan-100 bg-cyan-500 text-gray-950 shadow-cyan-950/30",
-  "9'": "border-fuchsia-100 bg-fuchsia-600 text-white shadow-fuchsia-950/30",
-  "10'": "border-yellow-100 bg-yellow-400 text-gray-950 shadow-yellow-950/30",
-  "10''": "border-yellow-50 bg-yellow-500 text-gray-950 shadow-yellow-950/30",
-};
-
-const OVERNOTE_TILE_COLORS: Record<string, string> = {
-  "1o": "border-sky-50 bg-sky-400 text-gray-950 shadow-sky-950/30",
-  "4o": "border-emerald-50 bg-emerald-400 text-gray-950 shadow-emerald-950/30",
-  "5o": "border-rose-50 bg-rose-400 text-white shadow-rose-950/30",
-  "6o": "border-lime-50 bg-lime-300 text-gray-950 shadow-lime-950/30",
-  "-7o": "border-orange-50 bg-orange-400 text-gray-950 shadow-orange-950/30",
-  "-9o": "border-fuchsia-50 bg-fuchsia-400 text-white shadow-fuchsia-950/30",
-  "-10o": "border-yellow-50 bg-yellow-200 text-gray-950 shadow-yellow-950/30",
-};
-
-const getTechniqueTileColor = (tab: string) => {
-  const normalizedTab = tab.trim().toLowerCase();
-  return BEND_TILE_COLORS[normalizedTab] ?? OVERNOTE_TILE_COLORS[normalizedTab];
-};
-
-const getTileColor = (hole: number | null, tab: string) =>
-  hole === null
-    ? "border-gray-500 bg-gray-800 text-gray-100 shadow-black/30"
-    : getTechniqueTileColor(tab) ??
-      NOTE_TILE_COLORS[(hole - 1) % NOTE_TILE_COLORS.length];
-
-const getTileFontSizePx = (heightPercent: number) =>
-  Math.round(Math.max(7, Math.min(12, heightPercent * 2.6)));
-
-const getHighwayTiles = (
-  visibleGameEvents: VisibleGameEvent[],
-  laneKeys: number[],
-  visualPlayheadMs: number,
-  lastHitIndex: number | null
-): HighwayTile[] => {
-  const laneCount = Math.max(laneKeys.length, 1);
-  return visibleGameEvents.flatMap(({ event, index, timing }) =>
-    event.notes.flatMap((note, noteIndex) => {
-      if (!note.shouldPlay) return [];
-
-      const tab = event.tabs[noteIndex] || event.tabs[0] || "";
-      const hole = getTabHole(tab);
-      const laneIndex =
-        hole === null ? noteIndex % laneCount : laneKeys.indexOf(hole);
-      const safeLaneIndex =
-        laneIndex >= 0 ? laneIndex : noteIndex % laneCount;
-      const left = ((safeLaneIndex + 0.5) / laneCount) * 100;
-      const noteDurationMs = getPlaybackNoteDurationMs(event, timing, note);
-      const noteEndMs = timing.startMs + noteDurationMs;
-      const startTop =
-        NOTE_TARGET_LINE_PERCENT -
-        ((timing.startMs - visualPlayheadMs) / NOTE_HIGHWAY_LOOKAHEAD_MS) *
-          NOTE_TARGET_LINE_PERCENT;
-      const endTop =
-        NOTE_TARGET_LINE_PERCENT -
-        ((noteEndMs - visualPlayheadMs) / NOTE_HIGHWAY_LOOKAHEAD_MS) *
-          NOTE_TARGET_LINE_PERCENT;
-      const top = (startTop + endTop) / 2;
-      const heightPercent = Math.abs(startTop - endTop);
-      const isCompact = heightPercent < 3.5;
-      const isActive =
-        visualPlayheadMs >= timing.startMs - NOTE_HIT_WINDOW_MS &&
-        visualPlayheadMs <= noteEndMs + NOTE_HIT_WINDOW_MS;
-
-      return [
-        {
-          fontSizePx: getTileFontSizePx(heightPercent),
-          heightPercent,
-          hole,
-          isActive,
-          isCompact,
-          key: `${index}-${note.name}-${noteIndex}`,
-          left,
-          note,
-          opacity:
-            Math.max(startTop, endTop) < -4 ||
-            Math.min(startTop, endTop) > 94
-              ? 0
-              : 1,
-          tab,
-          top,
-          wasHit: lastHitIndex === index && isActive,
-        },
-      ];
-    })
-  );
-};
 
 type NoteHighwayProps = {
   accuracy: number;
@@ -161,6 +35,246 @@ type NoteHighwayProps = {
   visualPlayheadMs: number;
 };
 
+type PerformanceMetricsProps = {
+  accuracy: number;
+  gameStats: GameStats;
+};
+
+const PerformanceMetrics = ({ accuracy, gameStats }: PerformanceMetricsProps) => (
+  <div
+    className="flex flex-wrap items-center gap-2 text-xs"
+    aria-label="Performance metrics"
+  >
+    <span className="text-xs font-semibold uppercase tracking-normal text-gray-500">
+      Performance
+    </span>
+    <span className="app-chip">Hits {gameStats.hits}</span>
+    <span className="app-chip">Miss {gameStats.misses}</span>
+    <span className="app-chip text-emerald-300">
+      Streak {gameStats.streak}
+    </span>
+    <span className="app-chip">{accuracy}% accuracy</span>
+  </div>
+);
+
+type PlaybackPanelProps = {
+  canPlayback: boolean;
+  currentTab: string;
+  isPlaying: boolean;
+  onRestartPlayback: () => void;
+  onTogglePlayback: () => void;
+  playbackEventsCount: number;
+  progress: number;
+  setTempo: (tempo: number) => void;
+  tempo: number;
+};
+
+const PlaybackPanel = ({
+  canPlayback,
+  currentTab,
+  isPlaying,
+  onRestartPlayback,
+  onTogglePlayback,
+  playbackEventsCount,
+  progress,
+  setTempo,
+  tempo,
+}: PlaybackPanelProps) => (
+  <div className="app-panel-muted mb-3 border-emerald-500/30 shadow-[0_0_22px_rgba(16,185,129,0.08)]">
+    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+      <div>
+        <div className="text-sm font-semibold text-gray-100">Tab playback</div>
+        <div className="text-xs text-gray-500">{playbackEventsCount} notes</div>
+      </div>
+      <div className="min-w-24 rounded border border-emerald-500/40 bg-emerald-400/10 px-3 py-2 text-center text-xl font-bold tracking-normal text-emerald-200">
+        {currentTab || "-"}
+      </div>
+    </div>
+
+    <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_180px]">
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={onTogglePlayback}
+          disabled={!canPlayback}
+          className="app-button app-button-success h-12 flex-1 text-base"
+        >
+          {isPlaying ? <Pause size={20} /> : <Play size={20} />}
+          {isPlaying ? "Pause" : "Play"}
+        </button>
+        <button
+          type="button"
+          aria-label="Restart playback"
+          title="Restart playback"
+          onClick={onRestartPlayback}
+          disabled={!canPlayback}
+          className="app-icon-button h-12 w-12"
+        >
+          <RotateCcw size={20} />
+        </button>
+      </div>
+
+      <label className="block text-sm text-gray-300">
+        <span className="mb-1 flex items-center justify-between gap-2">
+          <span className="inline-flex items-center gap-2">
+            <Gauge size={16} />
+            Tempo
+          </span>
+          <span>{tempo} bpm</span>
+        </span>
+        <input
+          type="range"
+          min="40"
+          max="180"
+          value={tempo}
+          onChange={(event) => setTempo(Number(event.target.value))}
+          className="w-full"
+          aria-label="Tempo in beats per minute"
+        />
+      </label>
+    </div>
+
+    <div className="mt-3 h-2 overflow-hidden rounded bg-gray-800">
+      <div
+        className="h-full bg-emerald-500 transition-[width]"
+        style={{ width: `${progress}%` }}
+      />
+    </div>
+  </div>
+);
+
+type LaneMarkersProps = {
+  laneKeys: number[];
+};
+
+const LaneMarkers = ({ laneKeys }: LaneMarkersProps) => (
+  <>
+    {Array.from({ length: Math.max(laneKeys.length - 1, 0) }).map(
+      (_, lane) => (
+        <div
+          key={lane}
+          className="absolute bottom-0 top-0 border-l border-gray-800"
+          style={{ left: `${((lane + 1) / laneKeys.length) * 100}%` }}
+        />
+      )
+    )}
+
+    {laneKeys.map((hole, lane) => (
+      <div
+        key={`lane-label-${hole}`}
+        className="absolute top-2 -translate-x-1/2 text-[10px] font-semibold text-gray-600"
+        style={{ left: `${((lane + 0.5) / laneKeys.length) * 100}%` }}
+      >
+        {hole}
+      </div>
+    ))}
+
+    {!laneKeys.length && (
+      <div className="absolute inset-x-0 top-2 text-center text-[10px] font-semibold text-gray-600">
+        No tab lanes
+      </div>
+    )}
+  </>
+);
+
+const TargetBand = () => (
+  <>
+    <div
+      className="absolute left-0 right-0 h-[2px] -translate-y-1/2 bg-emerald-200 shadow-[0_0_14px_rgba(110,231,183,0.65)]"
+      style={{ top: `${NOTE_TARGET_LINE_PERCENT}%` }}
+    />
+    <div
+      className="absolute left-2 right-2 h-14 -translate-y-1/2 rounded-lg border border-emerald-300/70 bg-emerald-400/10"
+      style={{ top: `${NOTE_TARGET_LINE_PERCENT}%` }}
+    />
+  </>
+);
+
+const getTileShapeClassName = (tile: NoteHighwayTile) =>
+  tile.isCompact ? "rounded-sm border" : "rounded border-2";
+
+const getTileStateClassName = (tile: NoteHighwayTile) => {
+  if (tile.wasHit) return "scale-110 ring-2 ring-emerald-100 brightness-110";
+  if (tile.isActive) return "ring-2 ring-white/80 brightness-110";
+  return "ring-1 ring-black/30";
+};
+
+type HighwayTileProps = {
+  laneCount: number;
+  tile: NoteHighwayTile;
+};
+
+const HighwayTile = ({ laneCount, tile }: HighwayTileProps) => (
+  <div
+    title={tile.title}
+    className={`absolute flex -translate-x-1/2 -translate-y-1/2 items-center justify-center overflow-hidden whitespace-nowrap font-black shadow-lg transition-[transform,filter,box-shadow] ${getTileShapeClassName(
+      tile
+    )} ${tile.colorClassName} ${getTileStateClassName(tile)}`}
+    style={{
+      left: `${tile.leftPercent}%`,
+      top: `${tile.topPercent}%`,
+      width: `min(${NOTE_TILE_WIDTH_PX}px, calc(${100 / laneCount}% - ${NOTE_LANE_GAP_PX}px))`,
+      minHeight: "4px",
+      height: `${tile.heightPercent}%`,
+      fontSize: `${tile.fontSizePx}px`,
+      lineHeight: `${tile.fontSizePx}px`,
+      opacity: tile.opacity,
+      zIndex: tile.wasHit ? 30 : tile.isActive ? 20 : 10,
+    }}
+  >
+    {tile.label}
+  </div>
+);
+
+type PitchStatusProps = {
+  clarity: string | null;
+  detectedNote: DetectedNote | null;
+  isPlaying: boolean;
+  pitchError: string | null;
+};
+
+const getDetectedNoteText = (detectedNote: DetectedNote) => {
+  const centsPrefix = detectedNote.cents > 0 ? "+" : "";
+  return `${Note.pitchClass(detectedNote.note)} ${centsPrefix}${Math.round(
+    detectedNote.cents
+  )}c`;
+};
+
+const PitchStatus = ({
+  clarity,
+  detectedNote,
+  isPlaying,
+  pitchError,
+}: PitchStatusProps) => {
+  const statusClassName = pitchError
+    ? "app-status-error"
+    : detectedNote
+      ? "app-status-success"
+      : "app-status-info";
+  const message = pitchError
+    ? "Mic unavailable"
+    : detectedNote
+      ? getDetectedNoteText(detectedNote)
+      : isPlaying
+        ? "Listening"
+        : "Press play";
+
+  return (
+    <div className="absolute bottom-3 left-3 right-3 flex flex-wrap items-center justify-between gap-2 text-xs text-gray-300">
+      <span
+        className={`app-status inline-flex items-center gap-2 bg-gray-900/95 ${statusClassName}`}
+        role={pitchError ? "alert" : "status"}
+      >
+        <Mic size={14} />
+        {message}
+      </span>
+      <span className="app-status app-status-info bg-gray-900/95">
+        Clarity {clarity || "-"}
+      </span>
+    </div>
+  );
+};
+
 export const NoteHighway = ({
   accuracy,
   canPlayback,
@@ -181,12 +295,12 @@ export const NoteHighway = ({
   visibleGameEvents,
   visualPlayheadMs,
 }: NoteHighwayProps) => {
-  const highwayTiles = getHighwayTiles(
-    visibleGameEvents,
+  const highwayTiles = createNoteHighwayTiles({
     laneKeys,
+    lastHitIndex,
+    visibleGameEvents,
     visualPlayheadMs,
-    lastHitIndex
-  );
+  });
   const laneCount = Math.max(laneKeys.length, 1);
 
   return (
@@ -199,195 +313,35 @@ export const NoteHighway = ({
           </span>
         </div>
 
-        <div
-          className="flex flex-wrap items-center gap-2 text-xs"
-          aria-label="Performance metrics"
-        >
-          <span className="text-xs font-semibold uppercase tracking-normal text-gray-500">
-            Performance
-          </span>
-          <span className="app-chip">Hits {gameStats.hits}</span>
-          <span className="app-chip">Miss {gameStats.misses}</span>
-          <span className="app-chip text-emerald-300">
-            Streak {gameStats.streak}
-          </span>
-          <span className="app-chip">{accuracy}% accuracy</span>
-        </div>
+        <PerformanceMetrics accuracy={accuracy} gameStats={gameStats} />
       </div>
 
-      <div className="app-panel-muted mb-3 border-emerald-500/30 shadow-[0_0_22px_rgba(16,185,129,0.08)]">
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <div className="text-sm font-semibold text-gray-100">
-              Tab playback
-            </div>
-            <div className="text-xs text-gray-500">
-              {playbackEventsCount} notes
-            </div>
-          </div>
-          <div className="min-w-24 rounded border border-emerald-500/40 bg-emerald-400/10 px-3 py-2 text-center text-xl font-bold tracking-normal text-emerald-200">
-            {currentTab || "-"}
-          </div>
-        </div>
-
-        <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_180px]">
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={onTogglePlayback}
-              disabled={!canPlayback}
-              className="app-button app-button-success h-12 flex-1 text-base"
-            >
-              {isPlaying ? <Pause size={20} /> : <Play size={20} />}
-              {isPlaying ? "Pause" : "Play"}
-            </button>
-            <button
-              type="button"
-              aria-label="Restart playback"
-              title="Restart playback"
-              onClick={onRestartPlayback}
-              disabled={!canPlayback}
-              className="app-icon-button h-12 w-12"
-            >
-              <RotateCcw size={20} />
-            </button>
-          </div>
-
-          <label className="block text-sm text-gray-300">
-            <span className="mb-1 flex items-center justify-between gap-2">
-              <span className="inline-flex items-center gap-2">
-                <Gauge size={16} />
-                Tempo
-              </span>
-              <span>{tempo} bpm</span>
-            </span>
-            <input
-              type="range"
-              min="40"
-              max="180"
-              value={tempo}
-              onChange={(event) => setTempo(Number(event.target.value))}
-              className="w-full"
-              aria-label="Tempo in beats per minute"
-            />
-          </label>
-        </div>
-
-        <div className="mt-3 h-2 overflow-hidden rounded bg-gray-800">
-          <div
-            className="h-full bg-emerald-500 transition-[width]"
-            style={{ width: `${progress}%` }}
-          />
-        </div>
-      </div>
+      <PlaybackPanel
+        canPlayback={canPlayback}
+        currentTab={currentTab}
+        isPlaying={isPlaying}
+        onRestartPlayback={onRestartPlayback}
+        onTogglePlayback={onTogglePlayback}
+        playbackEventsCount={playbackEventsCount}
+        progress={progress}
+        setTempo={setTempo}
+        tempo={tempo}
+      />
 
       <div className="relative h-[360px] overflow-hidden rounded border border-gray-800 bg-gray-950 sm:h-[440px] lg:h-[520px]">
-        {Array.from({ length: Math.max(laneKeys.length - 1, 0) }).map(
-          (_, lane) => (
-            <div
-              key={lane}
-              className="absolute bottom-0 top-0 border-l border-gray-800"
-              style={{ left: `${((lane + 1) / laneKeys.length) * 100}%` }}
-            />
-          )
-        )}
-        {laneKeys.map((hole, lane) => (
-          <div
-            key={`lane-label-${hole}`}
-            className="absolute top-2 -translate-x-1/2 text-[10px] font-semibold text-gray-600"
-            style={{ left: `${((lane + 0.5) / laneKeys.length) * 100}%` }}
-          >
-            {hole}
-          </div>
+        <LaneMarkers laneKeys={laneKeys} />
+        <TargetBand />
+
+        {highwayTiles.map((tile) => (
+          <HighwayTile key={tile.key} laneCount={laneCount} tile={tile} />
         ))}
-        {!laneKeys.length && (
-          <div className="absolute inset-x-0 top-2 text-center text-[10px] font-semibold text-gray-600">
-            No tab lanes
-          </div>
-        )}
 
-        <div
-          className="absolute left-0 right-0 h-[2px] -translate-y-1/2 bg-emerald-200 shadow-[0_0_14px_rgba(110,231,183,0.65)]"
-          style={{ top: `${NOTE_TARGET_LINE_PERCENT}%` }}
+        <PitchStatus
+          clarity={clarity}
+          detectedNote={detectedNote}
+          isPlaying={isPlaying}
+          pitchError={pitchError}
         />
-        <div
-          className="absolute left-2 right-2 h-14 -translate-y-1/2 rounded-lg border border-emerald-300/70 bg-emerald-400/10"
-          style={{ top: `${NOTE_TARGET_LINE_PERCENT}%` }}
-        />
-
-        {highwayTiles.map(
-          ({
-            fontSizePx,
-            heightPercent,
-            hole,
-            isActive,
-            isCompact,
-            key,
-            left,
-            note,
-            opacity,
-            tab,
-            top,
-            wasHit,
-          }) => (
-            <div
-              key={key}
-              title={tab || Note.pitchClass(note.name)}
-              className={`absolute flex -translate-x-1/2 -translate-y-1/2 items-center justify-center overflow-hidden whitespace-nowrap font-black shadow-lg transition-[transform,filter,box-shadow] ${
-                isCompact ? "rounded-sm border" : "rounded border-2"
-              } ${getTileColor(
-                hole,
-                tab
-              )} ${
-                wasHit
-                  ? "scale-110 ring-2 ring-emerald-100 brightness-110"
-                  : isActive
-                    ? "ring-2 ring-white/80 brightness-110"
-                    : "ring-1 ring-black/30"
-              }`}
-              style={{
-                left: `${left}%`,
-                top: `${top}%`,
-                width: `min(${NOTE_TILE_WIDTH_PX}px, calc(${100 / laneCount}% - ${NOTE_LANE_GAP_PX}px))`,
-                minHeight: "4px",
-                height: `${heightPercent}%`,
-                fontSize: `${fontSizePx}px`,
-                lineHeight: `${fontSizePx}px`,
-                opacity,
-                zIndex: wasHit ? 30 : isActive ? 20 : 10,
-              }}
-            >
-              {tab || Note.pitchClass(note.name)}
-            </div>
-          )
-        )}
-
-        <div className="absolute bottom-3 left-3 right-3 flex flex-wrap items-center justify-between gap-2 text-xs text-gray-300">
-          <span
-            className={`app-status inline-flex items-center gap-2 bg-gray-900/95 ${
-              pitchError
-                ? "app-status-error"
-                : detectedNote
-                  ? "app-status-success"
-                  : "app-status-info"
-            }`}
-            role={pitchError ? "alert" : "status"}
-          >
-            <Mic size={14} />
-            {pitchError
-              ? "Mic unavailable"
-              : detectedNote
-                ? `${Note.pitchClass(detectedNote.note)} ${
-                    detectedNote.cents > 0 ? "+" : ""
-                  }${Math.round(detectedNote.cents)}c`
-                : isPlaying
-                  ? "Listening"
-                  : "Press play"}
-          </span>
-          <span className="app-status app-status-info bg-gray-900/95">
-            Clarity {clarity || "-"}
-          </span>
-        </div>
       </div>
     </div>
   );

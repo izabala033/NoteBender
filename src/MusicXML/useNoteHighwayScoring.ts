@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Note } from "tonal";
 import type { freqToNoteAndCents } from "../utils/utils";
+import {
+  getGameAccuracy,
+  getTargetMidiNumbers,
+  hasPlayableNotes,
+  initialGameStats,
+  isDetectedPitchHit,
+} from "./noteHighwayScoring";
 import type { GameStats, PlaybackEvent } from "./types";
 
 type DetectedNote = NonNullable<ReturnType<typeof freqToNoteAndCents>>;
@@ -13,12 +19,6 @@ type UseNoteHighwayScoringOptions = {
   targetEventIndex: number | null;
 };
 
-const emptyGameStats: GameStats = {
-  hits: 0,
-  misses: 0,
-  streak: 0,
-};
-
 export const useNoteHighwayScoring = ({
   currentEventIndex,
   currentGameEvent,
@@ -26,34 +26,22 @@ export const useNoteHighwayScoring = ({
   playbackEvents,
   targetEventIndex,
 }: UseNoteHighwayScoringOptions) => {
-  const [gameStats, setGameStats] = useState<GameStats>(emptyGameStats);
+  const [gameStats, setGameStats] = useState<GameStats>(initialGameStats);
   const [lastHitIndex, setLastHitIndex] = useState<number | null>(null);
   const scoredEventIndexRef = useRef<number | null>(null);
   const previousEventIndexRef = useRef(0);
 
   const currentTargetMidiNumbers = useMemo(
-    () =>
-      new Set(
-        (currentGameEvent?.notes ?? [])
-          .filter((note) => note.shouldPlay)
-          .map((note) => Note.midi(note.name))
-          .filter((midi): midi is number => midi !== null)
-      ),
+    () => getTargetMidiNumbers(currentGameEvent),
     [currentGameEvent]
   );
-  const detectedMidi = detectedNote ? Note.midi(detectedNote.note) : null;
   const isCurrentHit =
     targetEventIndex !== null &&
-    detectedMidi !== null &&
-    currentTargetMidiNumbers.has(detectedMidi) &&
-    Math.abs(detectedNote?.cents ?? 99) <= 35;
-  const accuracy =
-    gameStats.hits + gameStats.misses > 0
-      ? Math.round((gameStats.hits / (gameStats.hits + gameStats.misses)) * 100)
-      : 0;
+    isDetectedPitchHit(currentTargetMidiNumbers, detectedNote);
+  const accuracy = getGameAccuracy(gameStats);
 
   const resetScoring = useCallback(() => {
-    setGameStats(emptyGameStats);
+    setGameStats(initialGameStats);
     setLastHitIndex(null);
     scoredEventIndexRef.current = null;
     previousEventIndexRef.current = 0;
@@ -86,7 +74,7 @@ export const useNoteHighwayScoring = ({
 
     const previousEvent = playbackEvents[previousIndex];
     const shouldScoreMiss =
-      previousEvent?.notes.some((note) => note.shouldPlay) &&
+      hasPlayableNotes(previousEvent) &&
       scoredEventIndexRef.current !== previousIndex;
 
     if (shouldScoreMiss) {
