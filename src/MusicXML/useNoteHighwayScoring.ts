@@ -35,6 +35,7 @@ export const useNoteHighwayScoring = ({
     () =>
       new Set(
         (currentGameEvent?.notes ?? [])
+          .filter((note) => note.shouldPlay)
           .map((note) => Note.midi(note.name))
           .filter((midi): midi is number => midi !== null)
       ),
@@ -85,7 +86,7 @@ export const useNoteHighwayScoring = ({
 
     const previousEvent = playbackEvents[previousIndex];
     const shouldScoreMiss =
-      previousEvent?.notes.length &&
+      previousEvent?.notes.some((note) => note.shouldPlay) &&
       scoredEventIndexRef.current !== previousIndex;
 
     if (shouldScoreMiss) {

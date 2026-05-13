@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   createPlaybackTimeline,
   getLaneKeys,
+  getPlaybackNoteDurationMs,
+  getPlayableMidiNumbers,
   getTargetEventIndex,
   getVisibleGameEvents,
 } from "./playbackTimeline";
@@ -53,11 +55,32 @@ describe("playback timeline helpers", () => {
   });
 
   it("selects only the closest playable event inside the hit window", () => {
-    const events = [makeEvent(1, 120), makeEvent(1, 120), makeEvent(1, 120)];
+    const mutedTieStop = makeEvent(1, 120);
+    mutedTieStop.notes[0].shouldPlay = false;
+    const events = [makeEvent(1, 120), mutedTieStop, makeEvent(1, 120)];
     const timeline = createPlaybackTimeline(events, 1);
     const visibleEvents = getVisibleGameEvents(events, timeline, 495);
 
-    expect(getTargetEventIndex(visibleEvents, 495)).toBe(1);
+    expect(getTargetEventIndex(visibleEvents, 495)).toBeNull();
+    expect(getTargetEventIndex(visibleEvents, 995)).toBe(2);
     expect(getTargetEventIndex(visibleEvents, 300)).toBeNull();
+  });
+
+  it("uses extended playable note duration for held highway visibility", () => {
+    const heldEvent = makeEvent(1, 120);
+    const mutedTieStop = makeEvent(1, 120);
+    heldEvent.notes[0].durationBeats = 2;
+    heldEvent.notes[0].tieStart = true;
+    mutedTieStop.notes[0].shouldPlay = false;
+    mutedTieStop.notes[0].tieStop = true;
+
+    const events = [heldEvent, mutedTieStop, makeEvent(1, 120, [], "D4")];
+    const timeline = createPlaybackTimeline(events, 1);
+    const visibleEvents = getVisibleGameEvents(events, timeline, 1200);
+
+    expect(getPlaybackNoteDurationMs(heldEvent, timeline[0], heldEvent.notes[0]))
+      .toBe(1000);
+    expect(visibleEvents.map(({ index }) => index)).toContain(0);
+    expect(getPlayableMidiNumbers(events)).toEqual(new Set([60, 62]));
   });
 });

@@ -5,11 +5,47 @@ import {
   NOTE_HIT_WINDOW_MS,
 } from "./constants";
 import { getTabHole } from "./playbackParser";
-import type { PlaybackEvent, PlaybackTiming, VisibleGameEvent } from "./types";
+import type {
+  PlaybackEvent,
+  PlaybackNote,
+  PlaybackTiming,
+  VisibleGameEvent,
+} from "./types";
+
+const getPlayableNotes = (event: PlaybackEvent) =>
+  event.notes.filter((note) => note.shouldPlay);
+
+export const getPlaybackNoteDurationMs = (
+  event: PlaybackEvent,
+  timing: PlaybackTiming,
+  note: PlaybackNote
+) => {
+  if (event.durationBeats <= 0) return timing.durationMs;
+
+  return Math.max(
+    80,
+    timing.durationMs * (note.durationBeats / event.durationBeats)
+  );
+};
+
+const getVisibleEventEndMs = (
+  event: PlaybackEvent,
+  timing: PlaybackTiming
+) => {
+  const playableNotes = getPlayableNotes(event);
+  if (!playableNotes.length) return timing.endMs;
+
+  return Math.max(
+    timing.endMs,
+    ...playableNotes.map(
+      (note) => timing.startMs + getPlaybackNoteDurationMs(event, timing, note)
+    )
+  );
+};
 
 export const getPlayableMidiNumbers = (events: PlaybackEvent[]) => {
   const midiNumbers = events
-    .flatMap((event) => event.notes)
+    .flatMap(getPlayableNotes)
     .map((note) => Note.midi(note.name))
     .filter((midi): midi is number => midi !== null);
 
@@ -63,10 +99,11 @@ export const getVisibleGameEvents = (
       index,
       timing: timeline[index],
     }))
-    .filter(({ timing }) => {
+    .filter(({ event, timing }) => {
       if (!timing) return false;
+      const visibleEndMs = getVisibleEventEndMs(event, timing);
       return (
-        timing.endMs >= visualPlayheadMs - NOTE_HIGHWAY_TRAIL_MS &&
+        visibleEndMs >= visualPlayheadMs - NOTE_HIGHWAY_TRAIL_MS &&
         timing.startMs <= visualPlayheadMs + NOTE_HIGHWAY_LOOKAHEAD_MS
       );
     });
@@ -79,7 +116,7 @@ export const getTargetEventIndex = (
   let closestDistanceMs = Number.POSITIVE_INFINITY;
 
   visibleGameEvents.forEach(({ event, index, timing }) => {
-    if (!event.notes.length || !timing) return;
+    if (!getPlayableNotes(event).length || !timing) return;
 
     const distanceMs = Math.abs(timing.startMs - visualPlayheadMs);
     if (distanceMs > NOTE_HIT_WINDOW_MS || distanceMs >= closestDistanceMs) {

@@ -111,13 +111,15 @@ const getNoteVelocity = (note: Element, currentVelocity: number) => {
 };
 
 const getTies = (note: Element) => {
-  const tieTypes = Array.from(note.getElementsByTagName("tie")).map((tie) =>
-    tie.getAttribute("type")
-  );
+  const tieTypes = [
+    ...Array.from(note.getElementsByTagName("tie")),
+    ...Array.from(note.getElementsByTagName("tied")),
+  ].map((tie) => tie.getAttribute("type"));
+  const tieContinues = tieTypes.includes("continue");
 
   return {
-    tieStart: tieTypes.includes("start"),
-    tieStop: tieTypes.includes("stop"),
+    tieStart: tieTypes.includes("start") || tieContinues,
+    tieStop: tieTypes.includes("stop") || tieContinues,
   };
 };
 

@@ -10,6 +10,7 @@ import {
   NOTE_TILE_WIDTH_PX,
 } from "./constants";
 import { getTabHole } from "./playbackParser";
+import { getPlaybackNoteDurationMs } from "./playbackTimeline";
 import type { GameStats, VisibleGameEvent } from "./types";
 
 type DetectedNote = NonNullable<ReturnType<typeof freqToNoteAndCents>>;
@@ -161,7 +162,11 @@ export const NoteHighway = ({
         </div>
         <div className="space-y-2">
           {visibleGameEvents
-            .filter(({ event, index }) => index > currentEventIndex && event.notes.length)
+            .filter(
+              ({ event, index }) =>
+                index > currentEventIndex &&
+                event.notes.some((note) => note.shouldPlay)
+            )
             .slice(0, 7)
             .map(({ event, index }) => (
               <div
@@ -209,47 +214,65 @@ export const NoteHighway = ({
         />
 
         {visibleGameEvents.flatMap(({ event, index, timing }) =>
-          event.notes.map((note, noteIndex) => {
-                const tab = event.tabs[noteIndex] || event.tabs[0] || "";
-                const hole = getTabHole(tab);
-                const laneCount = Math.max(laneKeys.length, 1);
-                const laneIndex =
-                  hole === null ? noteIndex % laneCount : laneKeys.indexOf(hole);
-                const safeLaneIndex =
-                  laneIndex >= 0 ? laneIndex : noteIndex % laneCount;
-                const left = ((safeLaneIndex + 0.5) / laneCount) * 100;
-                const timeToHitMs = timing.startMs - visualPlayheadMs;
-                const top =
-                  NOTE_TARGET_LINE_PERCENT -
-                  (timeToHitMs / NOTE_HIGHWAY_LOOKAHEAD_MS) *
-                    NOTE_TARGET_LINE_PERCENT;
-                const isActive =
-                  timeToHitMs <= 0 &&
-                  Math.abs(timeToHitMs) <= NOTE_HIT_WINDOW_MS;
-                const wasHit = lastHitIndex === index && isActive;
+          event.notes.flatMap((note, noteIndex) => {
+            if (!note.shouldPlay) return [];
 
-                return (
-                  <div
-                    key={`${index}-${note.name}-${noteIndex}`}
-                    className={`absolute flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded border text-xs font-bold ${
-                      wasHit
-                        ? "scale-110 border-emerald-200 bg-emerald-400 text-black shadow-[0_0_22px_rgba(52,211,153,0.9)]"
-                        : isActive
-                          ? "border-cyan-200 bg-cyan-400 text-black"
-                          : "border-gray-600 bg-gray-800 text-gray-100"
-                    }`}
-                    style={{
-                      left: `${left}%`,
-                      top: `${top}%`,
-                      width: `min(${NOTE_TILE_WIDTH_PX}px, calc(${100 / laneCount}% - ${NOTE_LANE_GAP_PX}px))`,
-                      height: NOTE_TILE_HEIGHT_PX,
-                      opacity: top < -4 || top > 94 ? 0 : 1,
-                    }}
-                  >
-                    {tab || Note.pitchClass(note.name)}
-                  </div>
-                );
-              })
+            const tab = event.tabs[noteIndex] || event.tabs[0] || "";
+            const hole = getTabHole(tab);
+            const laneCount = Math.max(laneKeys.length, 1);
+            const laneIndex =
+              hole === null ? noteIndex % laneCount : laneKeys.indexOf(hole);
+            const safeLaneIndex =
+              laneIndex >= 0 ? laneIndex : noteIndex % laneCount;
+            const left = ((safeLaneIndex + 0.5) / laneCount) * 100;
+            const noteDurationMs = getPlaybackNoteDurationMs(
+              event,
+              timing,
+              note
+            );
+            const noteEndMs = timing.startMs + noteDurationMs;
+            const startTop =
+              NOTE_TARGET_LINE_PERCENT -
+              ((timing.startMs - visualPlayheadMs) /
+                NOTE_HIGHWAY_LOOKAHEAD_MS) *
+                NOTE_TARGET_LINE_PERCENT;
+            const endTop =
+              NOTE_TARGET_LINE_PERCENT -
+              ((noteEndMs - visualPlayheadMs) / NOTE_HIGHWAY_LOOKAHEAD_MS) *
+                NOTE_TARGET_LINE_PERCENT;
+            const top = (startTop + endTop) / 2;
+            const heightPercent = Math.abs(startTop - endTop);
+            const isActive =
+              visualPlayheadMs >= timing.startMs - NOTE_HIT_WINDOW_MS &&
+              visualPlayheadMs <= noteEndMs + NOTE_HIT_WINDOW_MS;
+            const wasHit = lastHitIndex === index && isActive;
+
+            return [
+              <div
+                key={`${index}-${note.name}-${noteIndex}`}
+                className={`absolute flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded border text-xs font-bold ${
+                  wasHit
+                    ? "scale-110 border-emerald-200 bg-emerald-400 text-black shadow-[0_0_22px_rgba(52,211,153,0.9)]"
+                    : isActive
+                      ? "border-cyan-200 bg-cyan-400 text-black"
+                      : "border-gray-600 bg-gray-800 text-gray-100"
+                }`}
+                style={{
+                  left: `${left}%`,
+                  top: `${top}%`,
+                  width: `min(${NOTE_TILE_WIDTH_PX}px, calc(${100 / laneCount}% - ${NOTE_LANE_GAP_PX}px))`,
+                  height: `max(${NOTE_TILE_HEIGHT_PX}px, ${heightPercent}%)`,
+                  opacity:
+                    Math.max(startTop, endTop) < -4 ||
+                    Math.min(startTop, endTop) > 94
+                      ? 0
+                      : 1,
+                }}
+              >
+                {tab || Note.pitchClass(note.name)}
+              </div>,
+            ];
+          })
         )}
 
         <div className="absolute bottom-3 left-3 right-3 flex flex-wrap items-center justify-between gap-2 text-xs text-gray-300">

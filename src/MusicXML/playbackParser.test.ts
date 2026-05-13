@@ -293,4 +293,45 @@ describe("parsePlaybackEvents", () => {
       shouldPlay: false,
     });
   });
+
+  it("resolves notation-only tied notes as a single held playback note", () => {
+    const result = parsePlaybackEvents(`
+      <score-partwise>
+        <part>
+          <measure>
+            <attributes><divisions>1</divisions></attributes>
+            <note>
+              <pitch><step>A</step><octave>4</octave></pitch>
+              <duration>1</duration>
+              <notations><tied type="start" /></notations>
+            </note>
+            <note>
+              <pitch><step>A</step><octave>4</octave></pitch>
+              <duration>1</duration>
+              <notations><tied type="continue" /></notations>
+            </note>
+            <note>
+              <pitch><step>A</step><octave>4</octave></pitch>
+              <duration>2</duration>
+              <notations><tied type="stop" /></notations>
+            </note>
+          </measure>
+        </part>
+      </score-partwise>
+    `);
+
+    expect(result.events[0].notes[0]).toMatchObject({
+      name: "A4",
+      durationBeats: 4,
+      shouldPlay: true,
+    });
+    expect(result.events[1].notes[0]).toMatchObject({
+      name: "A4",
+      shouldPlay: false,
+    });
+    expect(result.events[2].notes[0]).toMatchObject({
+      name: "A4",
+      shouldPlay: false,
+    });
+  });
 });
